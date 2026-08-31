@@ -7,6 +7,10 @@ public static class DomainErrors
         public static Error EmailIsRequired()
             => Error.Validation("user.email.required", "Email is required");
 
+        public static Error EmailTooLong(int maxLength)
+            => Error.Validation("user.email.max_length",
+                $"Email must not exceed {maxLength} characters");
+
         public static Error EmailInvalidFormat()
             => Error.Validation("user.email.invalid_format", "Email has invalid format");
 
@@ -87,6 +91,29 @@ public static class DomainErrors
         public static Error FullNameAlreadySet()
             => Error.Conflict("user.full_name.already_set",
                 "The new full name is the same as the current one");
+
+        public static Error EmailAlreadyExists()
+            => Error.Conflict("user.email.already_exists",
+                "A user with this email address already exists");
+
+        public static Error PhoneAlreadyExists()
+            => Error.Conflict("user.phone.already_exists",
+                "A user with this phone number already exists");
+
+        public static Error PasswordIsRequired()
+            => Error.Validation("user.password.required", "Password is required");
+
+        public static Error PasswordTooShort(int minLength)
+            => Error.Validation("user.password.min_length",
+                $"Password must be at least {minLength} characters long");
+
+        public static Error PasswordMissingUppercase()
+            => Error.Validation("user.password.missing_uppercase",
+                "Password must contain at least one uppercase letter");
+
+        public static Error PasswordMissingDigit()
+            => Error.Validation("user.password.missing_digit",
+                "Password must contain at least one digit");
     }
 
     public static class RefreshTokens 

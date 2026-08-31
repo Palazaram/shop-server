@@ -4,7 +4,7 @@ namespace Shop.Domain.Roles;
 
 public sealed class Role : AggregateRoot<int>
 {
-    private const int MaxNameLength = 50;
+    public const int MaxNameLength = 50;
 
     public string Name { get; private set; } = default!;
 
