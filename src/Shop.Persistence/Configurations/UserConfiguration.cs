@@ -17,15 +17,24 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ComplexProperty(u => u.FullName, fullName =>
         {
             fullName.Property(x => x.FirstName)
-                .HasMaxLength(FullName.MaxLength)
+                .HasConversion(
+                    personName => personName.Value,
+                    value => PersonName.Create(value).Value)
+                .HasMaxLength(PersonName.MaxLength)
                 .IsRequired();
 
             fullName.Property(x => x.LastName)
-                .HasMaxLength(FullName.MaxLength)
+                .HasConversion(
+                    personName => personName.Value,
+                    value => PersonName.Create(value).Value)
+                .HasMaxLength(PersonName.MaxLength)
                 .IsRequired();
 
             fullName.Property(x => x.Patronymic)
-                .HasMaxLength(FullName.MaxLength)
+                .HasConversion(
+                    personName => personName.Value,
+                    value => PersonName.Create(value).Value)
+                .HasMaxLength(PersonName.MaxLength)
                 .IsRequired();
         });
 

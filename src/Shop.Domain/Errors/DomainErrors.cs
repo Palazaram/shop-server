@@ -27,50 +27,20 @@ public static class DomainErrors
         public static Error PasswordHashIsRequired()
             => Error.Validation("user.password_hash.required", "Password hash is required");
 
-        public static Error FirstNameIsRequired()
-            => Error.Validation("user.first_name.required", "First name is required");
+        public static Error NameIsRequired()
+            => Error.Validation("user.name.required", "Name is required");
 
-        public static Error LastNameIsRequired()
-            => Error.Validation("user.last_name.required", "Last name is required");
+        public static Error NameTooShort(int minLength)
+            => Error.Validation("user.name.min_length",
+                $"Name must be at least {minLength} characters long");
 
-        public static Error PatronymicIsRequired()
-            => Error.Validation("user.patronymic.required", "Patronymic is required");
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("user.name.max_length",
+                $"Name must not exceed {maxLength} characters");
 
-        public static Error FirstNameTooShort(int minLength)
-            => Error.Validation("user.first_name.min_length", 
-                $"First name must be at least {minLength} characters long");
-
-        public static Error FirstNameTooLong(int maxLength)
-            => Error.Validation("user.first_name.max_length", 
-                $"First name must not exceed {maxLength} characters");
-
-        public static Error LastNameTooShort(int minLength)
-            => Error.Validation("user.last_name.min_length",
-                $"Last name must be at least {minLength} characters long");
-
-        public static Error LastNameTooLong(int maxLength)
-            => Error.Validation("user.last_name.max_length",
-                $"Last name must not exceed {maxLength} characters");
-
-        public static Error PatronymicTooShort(int minLength)
-            => Error.Validation("user.patronymic.min_length",
-                $"Patronymic must be at least {minLength} characters long");
-
-        public static Error PatronymicTooLong(int maxLength)
-            => Error.Validation("user.patronymic.max_length",
-                $"Patronymic must not exceed {maxLength} characters");
-
-        public static Error FirstNameInvalidFormat()
-            => Error.Validation("user.first_name.invalid_format",
-                "First name must contain only Ukrainian letters");
-
-        public static Error LastNameInvalidFormat()
-            => Error.Validation("user.last_name.invalid_format",
-                "Last name must contain only Ukrainian letters");
-
-        public static Error PatronymicInvalidFormat()
-            => Error.Validation("user.patronymic.invalid_format",
-                "Patronymic must contain only Ukrainian letters");
+        public static Error NameInvalidFormat()
+            => Error.Validation("user.name.invalid_format",
+                "Name must contain only Ukrainian letters");
 
         public static Error RoleAlreadyAssigned()
             => Error.Conflict("user.role.already_assigned",
