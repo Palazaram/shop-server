@@ -10,4 +10,9 @@ internal sealed class RefreshTokenRepository(AppDbContext context) : IRefreshTok
 
     public async Task<Maybe<RefreshToken>> GetByTokenHashAsync(TokenHash tokenHash, CancellationToken cancellationToken = default)
         => await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash, cancellationToken);
+    
+    public async Task<IReadOnlyList<RefreshToken>> GetNotRevokedByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        => await context.RefreshTokens
+            .Where(rt => rt.UserId == userId && rt.RevokedAt == null)
+            .ToListAsync(cancellationToken);
 }

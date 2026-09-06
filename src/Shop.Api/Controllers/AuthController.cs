@@ -1,14 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shop.Api.Authentication;
 using Shop.Application.Abstractions;
+using Shop.Application.RefreshTokens.RefreshAccessToken;
+using Shop.Application.RefreshTokens.RevokeRefreshToken;
 using Shop.Application.Users.LoginUser;
 using Shop.Application.Users.RegisterUser;
+using Shop.Domain.Errors;
 
 namespace Shop.Api.Controllers;
 
+[Route("api/auth")]
 public sealed class AuthController(
     ICommandHandler<RegisterUserCommand, RegisterUserResponse> registerUserHandler,
     ICommandHandler<LoginUserCommand, LoginUserResponse> loginUserHandler,
+    ICommandHandler<RefreshAccessTokenCommand, RefreshAccessTokenResponse> refreshAccessTokenHandler,
+    ICommandHandler<RevokeRefreshTokenCommand> revokeRefreshTokenHandler,
     AuthCookieService authCookieService)
         : ApiControllerBase
 {
@@ -39,5 +45,44 @@ public sealed class AuthController(
             authCookieService.SetTokens(Response, response.AccessToken, response.RefreshToken);
             return NoContent();
         });
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
+    {
+        string? refreshToken = Request.Cookies[AuthCookieService.RefreshTokenCookieName];
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return ToActionResult(DomainErrors.Auth.RefreshTokenInvalid());
+
+        var result = await refreshAccessTokenHandler.HandleAsync(
+            new RefreshAccessTokenCommand(refreshToken), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            authCookieService.ClearTokens(Response);
+            return ToActionResult(result.Error);
+        }
+
+        authCookieService.SetTokens(Response, result.Value.AccessToken, result.Value.RefreshToken);
+
+        return NoContent();
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        string? refreshToken = Request.Cookies[AuthCookieService.RefreshTokenCookieName];
+
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+            await revokeRefreshTokenHandler.HandleAsync(
+                new RevokeRefreshTokenCommand(refreshToken), cancellationToken);
+
+        authCookieService.ClearTokens(Response);
+
+        return NoContent();
     }
 }

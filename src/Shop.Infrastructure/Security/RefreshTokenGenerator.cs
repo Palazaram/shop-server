@@ -14,9 +14,13 @@ public sealed class RefreshTokenGenerator : IRefreshTokenGenerator
         byte[] randomBytes = RandomNumberGenerator.GetBytes(TokenSizeInBytes);
         string value = Base64UrlEncoder.Encode(randomBytes);
 
-        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        string hash = Convert.ToHexString(hashBytes);
+        return new GeneratedRefreshToken(value, ComputeHash(value));
+    }
 
-        return new GeneratedRefreshToken(value, hash);
+    public string ComputeHash(string rawToken)
+    {
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+
+        return Convert.ToHexString(hashBytes);
     }
 }

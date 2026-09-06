@@ -27,7 +27,7 @@ public abstract class ApiControllerBase : ControllerBase
             ? NoContent()
             : ToActionResult(result.Error);
 
-    private IActionResult ToActionResult(Error error)
+    protected IActionResult ToActionResult(Error error)
     {
         var problemDetails = error.ToProblemDetails();
 
