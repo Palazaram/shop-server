@@ -1,4 +1,5 @@
 using Scalar.AspNetCore;
+using Shop.Api.Authentication;
 using Shop.Api.ExceptionHandling;
 using Shop.Api.Extensions;
 using Shop.Api.Filters;
@@ -12,8 +13,8 @@ var connectionString = builder.Configuration.GetConnectionString("Database")
     ?? throw new InvalidOperationException("Connection string 'Database' is not configured.");
 
 builder.Services
-    .AddApplication()
-    .AddInfrastructure()
+    .AddApplication(builder.Configuration)
+    .AddInfrastructure(builder.Configuration)
     .AddPersistence(connectionString);
 
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
@@ -24,7 +25,10 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddOpenApi();
+builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
+
+builder.Services.AddSingleton<AuthCookieService>();
 
 var app = builder.Build();
 

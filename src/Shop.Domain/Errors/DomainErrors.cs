@@ -96,4 +96,15 @@ public static class DomainErrors
             => Error.Conflict("refresh_token.already_revoked", 
                 "Refresh token is already revoked");
     }
+
+    public static class Auth
+    {
+        public static Error InvalidCredentials()
+            => Error.Unauthorized("auth.invalid_credentials", 
+                "Invalid credentials");
+
+        public static Error RefreshTokenInvalid()
+            => Error.Unauthorized("auth.refresh_token_invalid", 
+                "Refresh token is invalid");
+    }
 }
