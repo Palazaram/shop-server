@@ -1,16 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Shop.Application.Categories;
 
 namespace Shop.Persistence.Queries;
 
 internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
 {
+    private static readonly StringComparer UkrainianComparer =
+        StringComparer.Create(CultureInfo.GetCultureInfo("uk-UA"), ignoreCase: false);
+
     public async Task<IReadOnlyList<CategoryTreeItemResponse>> GetTreeAsync(
         CancellationToken cancellationToken)
     {
         var rows = await context.Categories
             .AsNoTracking()
-            .OrderBy(c => c.Name)
             .Select(c => new { c.Id, c.Name, c.Slug, c.ParentId })
             .ToListAsync(cancellationToken);
 
@@ -20,12 +23,14 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
             .ToDictionary(
                 group => group.Key,
                 group => group
+                    .OrderBy(row => row.Name, UkrainianComparer)
                     .Select(row => new CategoryTreeItemResponse(
                         row.Id, row.Name, row.Slug.Value, []))
                     .ToList());
 
         return rows
             .Where(row => row.ParentId is null)
+            .OrderBy(row => row.Name, UkrainianComparer)
             .Select(row => new CategoryTreeItemResponse(
                 row.Id,
                 row.Name,
