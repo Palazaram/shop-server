@@ -2,7 +2,7 @@
 
 public static class DomainErrors
 {
-    public static class Users 
+    public static class Users
     {
         public static Error EmailIsRequired()
             => Error.Validation("user.email.required", "Email is required");
@@ -18,7 +18,7 @@ public static class DomainErrors
             => Error.Validation("user.phone.required", "Phone number is required");
 
         public static Error PhoneInvalidLength(int length)
-            => Error.Validation("user.phone.invalid_length", 
+            => Error.Validation("user.phone.invalid_length",
                 $"Phone number must be {length} characters long");
 
         public static Error PhoneInvalidFormat()
@@ -40,26 +40,26 @@ public static class DomainErrors
 
         public static Error NameInvalidFormat()
             => Error.Validation("user.name.invalid_format",
-                "Name must contain only Ukrainian letters");
+                "Name must contain only Ukrainian letters, apostrophes and hyphens");
 
         public static Error RoleAlreadyAssigned()
             => Error.Conflict("user.role.already_assigned",
                 "This role is already assigned to the user");
 
-        public static Error PasswordAlreadySet()
-            => Error.Conflict("user.password.already_set",
+        public static Error PasswordUnchanged()
+            => Error.Conflict("user.password.unchanged",
                 "The new password is the same as the current password");
 
-        public static Error PhoneAlreadySet()
-            => Error.Conflict("user.phone.already_set",
+        public static Error PhoneUnchanged()
+            => Error.Conflict("user.phone.unchanged",
                 "The new phone number is the same as the current phone number");
 
-        public static Error EmailAlreadySet()
-            => Error.Conflict("user.email.already_set",
+        public static Error EmailUnchanged()
+            => Error.Conflict("user.email.unchanged",
                 "The new email address is the same as the current email address");
 
-        public static Error FullNameAlreadySet()
-            => Error.Conflict("user.full_name.already_set",
+        public static Error FullNameUnchanged()
+            => Error.Conflict("user.full_name.unchanged",
                 "The new full name is the same as the current one");
 
         public static Error EmailAlreadyExists()
@@ -86,25 +86,39 @@ public static class DomainErrors
                 "Password must contain at least one digit");
     }
 
-    public static class RefreshTokens 
+    public static class RefreshTokens
     {
         public static Error TokenHashIsRequired()
-            => Error.Validation("refresh_token.hash.required", 
+            => Error.Validation("refresh_token.hash.required",
                 "Token hash is required");
 
         public static Error AlreadyRevoked()
-            => Error.Conflict("refresh_token.already_revoked", 
+            => Error.Conflict("refresh_token.already_revoked",
                 "Refresh token is already revoked");
     }
 
     public static class Auth
     {
         public static Error InvalidCredentials()
-            => Error.Unauthorized("auth.invalid_credentials", 
+            => Error.Unauthorized("auth.invalid_credentials",
                 "Invalid credentials");
 
         public static Error RefreshTokenInvalid()
-            => Error.Unauthorized("auth.refresh_token_invalid", 
+            => Error.Unauthorized("auth.refresh_token_invalid",
                 "Refresh token is invalid");
+    }
+
+    public static class Slugs
+    {
+        public static Error IsRequired()
+            => Error.Validation("slug.required", "Slug is required");
+
+        public static Error TooLong(int maxLength)
+            => Error.Validation("slug.max_length",
+                $"Slug must not exceed {maxLength} characters");
+
+        public static Error InvalidFormat()
+            => Error.Validation("slug.invalid_format",
+                "Slug must contain only lowercase latin letters, digits and single hyphens");
     }
 }
