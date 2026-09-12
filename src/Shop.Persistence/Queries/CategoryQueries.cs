@@ -6,9 +6,6 @@ namespace Shop.Persistence.Queries;
 
 internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
 {
-    private static readonly StringComparer UkrainianComparer =
-        StringComparer.Create(CultureInfo.GetCultureInfo("uk-UA"), ignoreCase: false);
-
     public async Task<IReadOnlyList<CategoryTreeItemResponse>> GetTreeAsync(
         CancellationToken cancellationToken)
     {
@@ -23,14 +20,14 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .OrderBy(row => row.Name, UkrainianComparer)
+                    .OrderBy(row => row.Name, TextComparers.Ukrainian)
                     .Select(row => new CategoryTreeItemResponse(
                         row.Id, row.Name, row.Slug.Value, []))
                     .ToList());
 
         return rows
             .Where(row => row.ParentId is null)
-            .OrderBy(row => row.Name, UkrainianComparer)
+            .OrderBy(row => row.Name, TextComparers.Ukrainian)
             .Select(row => new CategoryTreeItemResponse(
                 row.Id,
                 row.Name,

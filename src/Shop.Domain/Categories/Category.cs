@@ -6,7 +6,7 @@ using Shop.Domain.Errors;
 
 namespace Shop.Domain.Categories;
 
-public sealed partial class Category : AggregateRoot<Guid>
+public sealed class Category : AggregateRoot<Guid>
 {
     public const int MaxNameLength = 100;
 
@@ -52,14 +52,11 @@ public sealed partial class Category : AggregateRoot<Guid>
         if (string.IsNullOrWhiteSpace(name))
             return DomainErrors.Categories.NameIsRequired();
 
-        string normalized = WhitespaceRegex().Replace(name.Trim(), " ");
+        string normalized = name.CollapseWhitespace();
 
         if (normalized.Length > MaxNameLength)
             return DomainErrors.Categories.NameTooLong(MaxNameLength);
 
         return normalized;
     }
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex WhitespaceRegex();
 }
