@@ -121,4 +121,41 @@ public static class DomainErrors
             => Error.Validation("slug.invalid_format",
                 "Slug must contain only lowercase latin letters, digits and single hyphens");
     }
+
+    public static class Categories
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("category.name.required", "Category name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("category.name.max_length",
+                $"Category name must not exceed {maxLength} characters");
+
+        public static Error ParentIdIsInvalid()
+            => Error.Validation("category.parent_id.invalid",
+                "Parent category id must not be empty");
+
+        public static Error ParentNotFound()
+            => Error.Validation("category.parent.not_found",
+                "Parent category does not exist");
+
+        public static Error MaxDepthExceeded()
+            => Error.Validation("category.max_depth_exceeded",
+                "A subcategory cannot have subcategories of its own");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("category.name.already_exists",
+                "A category with this name already exists at this level");
+
+        public static Error SlugAlreadyExists()
+            => Error.Conflict("category.slug.already_exists",
+                "A category with this slug already exists at this level");
+
+        public static Error SlugCannotBeGenerated()
+            => Error.Validation("category.slug.cannot_be_generated",
+                "Could not generate a slug from the category name, provide it explicitly");
+
+        public static Error NotFound()
+            => Error.NotFound("category.not_found", "Category not found");
+    }
 }

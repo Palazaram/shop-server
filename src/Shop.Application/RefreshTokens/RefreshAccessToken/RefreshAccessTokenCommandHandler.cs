@@ -15,7 +15,7 @@ public sealed class RefreshAccessTokenCommandHandler(
     IJwtProvider jwtProvider,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    RefreshTokenOptions refreshTokenOptions)
+    RefreshTokenOptions refreshTokenOptions) 
         : ICommandHandler<RefreshAccessTokenCommand, RefreshAccessTokenResponse>
 {
     public async Task<Result<RefreshAccessTokenResponse, Error>> HandleAsync(

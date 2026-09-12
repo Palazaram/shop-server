@@ -7,7 +7,8 @@ public sealed class RefreshTokenCleanupService(
     RefreshTokenOptions refreshTokenOptions,
     TimeProvider timeProvider,
     IServiceScopeFactory scopeFactory,
-    ILogger<RefreshTokenCleanupService> logger) : BackgroundService
+    ILogger<RefreshTokenCleanupService> logger) 
+        : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(24);
 

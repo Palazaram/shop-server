@@ -10,7 +10,7 @@ public sealed class RevokeRefreshTokenCommandHandler(
     IRefreshTokenRepository refreshTokenRepository,
     IRefreshTokenGenerator refreshTokenGenerator,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider) 
         : ICommandHandler<RevokeRefreshTokenCommand>
 {
     public async Task<UnitResult<Error>> HandleAsync(

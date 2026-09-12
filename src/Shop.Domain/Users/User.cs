@@ -62,7 +62,7 @@ public sealed class User : AggregateRoot<Guid>
         ArgumentNullException.ThrowIfNull(email);
 
         if (Email == email)
-            return DomainErrors.Users.EmailAlreadySet();
+            return DomainErrors.Users.EmailUnchanged();
 
         Email = email;
 
@@ -74,7 +74,7 @@ public sealed class User : AggregateRoot<Guid>
         ArgumentNullException.ThrowIfNull(phone);
 
         if (Phone == phone)
-            return DomainErrors.Users.PhoneAlreadySet();
+            return DomainErrors.Users.PhoneUnchanged();
 
         Phone = phone;
 
@@ -86,7 +86,7 @@ public sealed class User : AggregateRoot<Guid>
         ArgumentNullException.ThrowIfNull(fullName);
 
         if (FullName == fullName)
-            return DomainErrors.Users.FullNameAlreadySet();
+            return DomainErrors.Users.FullNameUnchanged();
 
         FullName = fullName;
 

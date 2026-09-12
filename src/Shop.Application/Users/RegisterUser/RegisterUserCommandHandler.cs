@@ -11,7 +11,7 @@ public sealed class RegisterUserCommandHandler(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider) 
         : ICommandHandler<RegisterUserCommand, RegisterUserResponse>
 {
     public async Task<Result<RegisterUserResponse, Error>> HandleAsync(

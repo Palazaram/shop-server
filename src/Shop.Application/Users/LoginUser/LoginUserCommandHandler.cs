@@ -16,7 +16,7 @@ public sealed class LoginUserCommandHandler
     IRefreshTokenGenerator refreshTokenGenerator,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    RefreshTokenOptions refreshTokenOptions)
+    RefreshTokenOptions refreshTokenOptions) 
         : ICommandHandler<LoginUserCommand, LoginUserResponse>
 {
     public async Task<Result<LoginUserResponse, Error>> HandleAsync

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Shop.Domain.Abstractions;
+using Shop.Domain.Categories;
 using Shop.Domain.RefreshTokens;
 using Shop.Domain.Roles;
 using Shop.Domain.Users;
@@ -16,6 +17,7 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Category> Categories => Set<Category>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
