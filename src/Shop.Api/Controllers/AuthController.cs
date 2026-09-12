@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Shop.Api.Authentication;
+using Shop.Api.Contracts;
+using Shop.Api.Extensions;
 using Shop.Application.Abstractions;
 using Shop.Application.RefreshTokens.RefreshAccessToken;
 using Shop.Application.RefreshTokens.RevokeRefreshToken;
@@ -84,5 +87,15 @@ public sealed class AuthController(
         authCookieService.ClearTokens(Response);
 
         return NoContent();
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
+    public IActionResult Me()
+    {
+        var response = new CurrentUserResponse(User.GetUserId(), User.GetRole());
+
+        return Ok(response);
     }
 }
