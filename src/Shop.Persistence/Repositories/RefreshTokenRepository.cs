@@ -15,4 +15,9 @@ internal sealed class RefreshTokenRepository(AppDbContext context) : IRefreshTok
         => await context.RefreshTokens
             .Where(rt => rt.UserId == userId && rt.RevokedAt == null)
             .ToListAsync(cancellationToken);
+
+    public Task<int> DeleteExpiredAsync(DateTimeOffset threshold, CancellationToken cancellationToken = default)
+        => context.RefreshTokens
+            .Where(rt => rt.ExpiresAt < threshold)
+            .ExecuteDeleteAsync(cancellationToken);
 }

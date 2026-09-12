@@ -1,5 +1,6 @@
 using Scalar.AspNetCore;
 using Shop.Api.Authentication;
+using Shop.Api.BackgroundJobs;
 using Shop.Api.ExceptionHandling;
 using Shop.Api.Extensions;
 using Shop.Api.Filters;
@@ -29,6 +30,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
 builder.Services.AddSingleton<AuthCookieService>();
+
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 var app = builder.Build();
 
