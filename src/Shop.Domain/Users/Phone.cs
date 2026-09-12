@@ -17,7 +17,7 @@ public sealed partial class Phone : SimpleValueObject<string>
 
     private Phone(string value) : base(value) { }
 
-    public static Result<Phone, Error> Create(string value)
+    public static Result<Phone, Error> Create(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return DomainErrors.Users.PhoneIsRequired();

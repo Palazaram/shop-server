@@ -18,7 +18,7 @@ public sealed partial class PersonName : SimpleValueObject<string>
 
     private PersonName(string value) : base(value) { }
 
-    public static Result<PersonName, Error> Create(string value)
+    public static Result<PersonName, Error> Create(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return DomainErrors.Users.NameIsRequired();

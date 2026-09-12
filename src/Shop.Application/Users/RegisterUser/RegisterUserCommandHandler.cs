@@ -37,7 +37,7 @@ public sealed class RegisterUserCommandHandler(
         if (existsByPhone)
             return DomainErrors.Users.PhoneAlreadyExists();
 
-        var passwordHash = passwordHasher.Hash(command.Password);
+        var passwordHash = passwordHasher.Hash(command.Password!);
 
         var passwordHashResult = PasswordHash.Create(passwordHash);
         if (passwordHashResult.IsFailure)

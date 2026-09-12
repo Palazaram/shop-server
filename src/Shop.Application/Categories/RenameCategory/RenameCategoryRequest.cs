@@ -1,3 +1,3 @@
 ﻿namespace Shop.Application.Categories.RenameCategory;
 
-public sealed record RenameCategoryRequest(string Name);
+public sealed record RenameCategoryRequest(string? Name);

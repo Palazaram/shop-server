@@ -16,7 +16,7 @@ public sealed class FullName : ValueObject
         Patronymic = patronymic;
     }
 
-    public static Result<FullName, Error> Create(string firstName, string lastName, string patronymic)
+    public static Result<FullName, Error> Create(string? firstName, string? lastName, string? patronymic)
     {
         var firstNameResult = PersonName.Create(firstName);
         if (firstNameResult.IsFailure)

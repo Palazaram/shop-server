@@ -2,5 +2,5 @@
 
 public interface ISlugGenerator
 {
-    string Generate(string source);
+    string Generate(string? source);
 }

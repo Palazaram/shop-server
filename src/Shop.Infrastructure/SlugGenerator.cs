@@ -14,13 +14,13 @@ public sealed class SlugGenerator : ISlugGenerator
         ['ґ'] = "g",
         ['д'] = "d",
         ['е'] = "e",
-        ['є'] = "ie",
+        ['є'] = "e",
         ['ж'] = "zh",
         ['з'] = "z",
         ['и'] = "i",
         ['і'] = "i",
         ['ї'] = "i",
-        ['й'] = "i",
+        ['й'] = "y",
         ['к'] = "k",
         ['л'] = "l",
         ['м'] = "m",
@@ -48,7 +48,7 @@ public sealed class SlugGenerator : ISlugGenerator
         ['э'] = "e",
     };
 
-    public string Generate(string source)
+    public string Generate(string? source)
     {
         if (string.IsNullOrWhiteSpace(source))
             return string.Empty;

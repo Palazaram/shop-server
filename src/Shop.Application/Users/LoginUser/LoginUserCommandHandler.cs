@@ -25,7 +25,7 @@ public sealed class LoginUserCommandHandler
         var phoneResult = Phone.Create(command.Phone);
         if (phoneResult.IsFailure)
         {
-            passwordHasher.VerifyDummy(command.Password);
+            passwordHasher.VerifyDummy(command.Password!);
             return DomainErrors.Auth.InvalidCredentials();
         }
 
@@ -35,13 +35,13 @@ public sealed class LoginUserCommandHandler
 
         if (maybeUser.HasNoValue)
         {
-            passwordHasher.VerifyDummy(command.Password);
+            passwordHasher.VerifyDummy(command.Password!);
             return DomainErrors.Auth.InvalidCredentials();
         }
 
         var user = maybeUser.Value;
 
-        if (!passwordHasher.Verify(command.Password, user.PasswordHash.Value))
+        if (!passwordHasher.Verify(command.Password!, user.PasswordHash.Value))
             return DomainErrors.Auth.InvalidCredentials();
 
         var accessToken = jwtProvider.GenerateAccessToken(user);

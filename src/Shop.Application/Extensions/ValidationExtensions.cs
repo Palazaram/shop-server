@@ -32,7 +32,7 @@ public static class ValidationExtensions
         });
     }
 
-    public static IRuleBuilderOptions<T, string> ValidPassword<T>(this IRuleBuilder<T, string> rule)
+    public static IRuleBuilderOptions<T, string?> ValidPassword<T>(this IRuleBuilder<T, string?> rule)
     {
         const int minLength = 8;
 

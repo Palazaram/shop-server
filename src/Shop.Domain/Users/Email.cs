@@ -10,7 +10,7 @@ public sealed class Email : SimpleValueObject<string>
 
     private Email(string value) : base(value) { }
 
-    public static Result<Email, Error> Create(string value) 
+    public static Result<Email, Error> Create(string? value) 
     {
         if (string.IsNullOrWhiteSpace(value))
             return DomainErrors.Users.EmailIsRequired();

@@ -158,4 +158,36 @@ public static class DomainErrors
         public static Error NotFound()
             => Error.NotFound("category.not_found", "Category not found");
     }
+
+    public static class Manufacturers
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("manufacturer.name.required", "Manufacturer name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("manufacturer.name.max_length",
+                $"Manufacturer name must not exceed {maxLength} characters");
+
+        public static Error CountryIsRequired()
+            => Error.Validation("manufacturer.country.required", "Country is required");
+
+        public static Error CountryTooLong(int maxLength)
+            => Error.Validation("manufacturer.country.max_length",
+                $"Country must not exceed {maxLength} characters");
+
+        public static Error NotFound()
+            => Error.NotFound("manufacturer.not_found", "Manufacturer not found");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("manufacturer.name.already_exists",
+                "A manufacturer with this name already exists");
+
+        public static Error SlugAlreadyExists()
+            => Error.Conflict("manufacturer.slug.already_exists",
+                "A manufacturer with this slug already exists");
+
+        public static Error SlugCannotBeGenerated()
+            => Error.Validation("manufacturer.slug.cannot_be_generated",
+                "Could not generate a slug from the manufacturer name, provide it explicitly");
+    }
 }
