@@ -1,9 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Shop.Application.Categories;
 using Shop.Application.Manufacturers;
+using Shop.Application.ProductVariants;
 using Shop.Domain.Abstractions;
 using Shop.Domain.Categories;
 using Shop.Domain.Manufacturers;
+using Shop.Domain.Products;
+using Shop.Domain.ProductVariants;
 using Shop.Domain.RefreshTokens;
 using Shop.Domain.Users;
 using Shop.Persistence.Queries;
@@ -24,9 +27,12 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IManufacturerRepository, ManufacturerRepository>();
-        
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
+
         services.AddScoped<IManufacturerQueries, ManufacturerQueries>();
         services.AddScoped<ICategoryQueries, CategoryQueries>();
+        services.AddScoped<IProductVariantQueries, ProductVariantQueries>();
 
         return services;
     }

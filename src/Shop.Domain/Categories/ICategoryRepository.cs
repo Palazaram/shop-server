@@ -11,5 +11,9 @@ public interface ICategoryRepository
 
     Task<bool> ExistsBySlugAsync(Slug slug, Guid? parentId, CancellationToken cancellationToken = default);
 
+    Task<bool> HasChildrenAsync(Guid categoryId, CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+
     void Add(Category category);
 }

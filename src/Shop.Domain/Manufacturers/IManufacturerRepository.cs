@@ -14,5 +14,7 @@ public interface IManufacturerRepository
 
     Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default);
 
+    Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+
     void Add(Manufacturer manufacturer);
 }

@@ -56,7 +56,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasConversion(
                 phone => phone.Value,
                 value => Phone.Create(value).Value)
-            .HasMaxLength(Phone.NationalNumberLength)
+            .HasMaxLength(Phone.MaxLength)
             .IsRequired();
 
         builder.HasOne<Role>()

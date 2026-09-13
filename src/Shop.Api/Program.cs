@@ -7,6 +7,7 @@ using Shop.Api.Filters;
 using Shop.Application;
 using Shop.Infrastructure;
 using Shop.Persistence;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +19,9 @@ builder.Services
     .AddInfrastructure(builder.Configuration)
     .AddPersistence(connectionString);
 
-builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
+builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 builder.Services.AddModelBindingErrorFormat();
 
 builder.Services.AddExceptionHandler<DuplicateKeyExceptionHandler>();

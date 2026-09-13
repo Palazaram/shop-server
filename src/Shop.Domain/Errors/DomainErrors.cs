@@ -19,7 +19,7 @@ public static class DomainErrors
 
         public static Error PhoneInvalidLength(int length)
             => Error.Validation("user.phone.invalid_length",
-                $"Phone number must be {length} characters long");
+                $"Phone number must contain {length} digits after the country code");
 
         public static Error PhoneInvalidFormat()
             => Error.Validation("user.phone.invalid_format", "Phone number has invalid format");
@@ -189,5 +189,114 @@ public static class DomainErrors
         public static Error SlugCannotBeGenerated()
             => Error.Validation("manufacturer.slug.cannot_be_generated",
                 "Could not generate a slug from the manufacturer name, provide it explicitly");
+    }
+
+    public static class Money
+    {
+        public static Error MustBePositive()
+            => Error.Validation("money.must_be_positive", 
+                "Amount must be greater than zero");
+
+        public static Error IsRequired()
+            => Error.Validation("money.required", "Price is required");
+    }
+
+    public static class Packagings
+    {
+        public static Error ValueMustBePositive()
+            => Error.Validation("packaging.value.must_be_positive",
+                "Packaging value must be greater than zero");
+
+        public static Error UnitIsInvalid()
+            => Error.Validation("packaging.unit.invalid", "Unknown unit of measure");
+
+        public static Error ValueIsRequired()
+            => Error.Validation("packaging.value.required", "Packaging value is required");
+
+        public static Error UnitIsRequired()
+            => Error.Validation("packaging.unit.required", "Unit of measure is required");
+    }
+
+    public static class Products
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("product.name.required", "Product name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("product.name.max_length",
+                $"Product name must not exceed {maxLength} characters");
+
+        public static Error DescriptionTooLong(int maxLength)
+            => Error.Validation("product.description.max_length",
+                $"Description must not exceed {maxLength} characters");
+
+        public static Error NotFound()
+            => Error.NotFound("product.not_found", "Product not found");
+
+        public static Error CategoryNotFound()
+            => Error.Validation("product.category.not_found", "Category does not exist");
+
+        public static Error CategoryIsNotLeaf()
+            => Error.Validation("product.category.not_leaf",
+                "Products can only be attached to a category without subcategories");
+
+        public static Error ManufacturerNotFound()
+            => Error.Validation("product.manufacturer.not_found", "Manufacturer does not exist");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("product.name.already_exists",
+                "This manufacturer already has a product with this name");
+
+        public static Error CategoryIdIsInvalid()
+            => Error.Validation("product.category_id.invalid", 
+                "Category id must not be empty");
+
+        public static Error ManufacturerIdIsInvalid()
+            => Error.Validation("product.manufacturer_id.invalid", 
+                "Manufacturer id must not be empty");
+    }
+
+    public static class ProductVariants
+    {
+        public static Error SkuIsRequired()
+            => Error.Validation("product_variant.sku.required", "SKU is required");
+
+        public static Error SkuTooLong(int maxLength)
+            => Error.Validation("product_variant.sku.max_length",
+                $"SKU must not exceed {maxLength} characters");
+
+        public static Error StockMustNotBeNegative()
+            => Error.Validation("product_variant.stock.negative",
+                "Stock quantity must not be negative");
+
+        public static Error NotFound()
+            => Error.NotFound("product_variant.not_found", "Product variant not found");
+
+        public static Error ProductNotFound()
+            => Error.Validation("product_variant.product.not_found", "Product does not exist");
+
+        public static Error SkuAlreadyExists()
+            => Error.Conflict("product_variant.sku.already_exists",
+                "A variant with this SKU already exists");
+
+        public static Error SlugAlreadyExists()
+            => Error.Conflict("product_variant.slug.already_exists",
+                "A variant with this slug already exists");
+
+        public static Error PackagingAlreadyExists()
+            => Error.Conflict("product_variant.packaging.already_exists",
+                "This product already has a variant with the same packaging");
+
+        public static Error SlugCannotBeGenerated()
+            => Error.Validation("product_variant.slug.cannot_be_generated",
+                "Could not generate a slug for this variant, provide it explicitly");
+
+        public static Error StockIsRequired()
+            => Error.Validation("product_variant.stock.required", 
+                "Stock quantity is required");
+
+        public static Error GeneratedSlugAlreadyExists()
+            => Error.Conflict("product_variant.slug.generated_conflict",
+                "A variant with the automatically generated slug already exists, provide a slug explicitly");
     }
 }

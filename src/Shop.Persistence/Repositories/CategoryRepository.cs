@@ -24,5 +24,11 @@ internal sealed class CategoryRepository(AppDbContext context) : ICategoryReposi
     public Task<bool> ExistsBySlugAsync(Slug slug, Guid? parentId, CancellationToken cancellationToken = default)
         => context.Categories.AnyAsync(c => c.Slug == slug && c.ParentId == parentId, cancellationToken);
 
+    public Task<bool> HasChildrenAsync(Guid categoryId, CancellationToken cancellationToken = default)
+        => context.Categories.AnyAsync(c => c.ParentId == categoryId, cancellationToken);
+
+    public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+        => context.Categories.AnyAsync(c => c.Id == id, cancellationToken);
+
     public void Add(Category category) => context.Categories.Add(category);
 }

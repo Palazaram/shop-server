@@ -3,6 +3,8 @@ using Npgsql;
 using Shop.Domain.Abstractions;
 using Shop.Domain.Categories;
 using Shop.Domain.Manufacturers;
+using Shop.Domain.Products;
+using Shop.Domain.ProductVariants;
 using Shop.Domain.RefreshTokens;
 using Shop.Domain.Roles;
 using Shop.Domain.Users;
@@ -20,6 +22,8 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Manufacturer> Manufacturers => Set<Manufacturer>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

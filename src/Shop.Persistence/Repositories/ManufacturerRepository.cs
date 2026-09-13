@@ -28,5 +28,8 @@ internal sealed class ManufacturerRepository(AppDbContext context) : IManufactur
     public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
         => context.Manufacturers.AnyAsync(m => m.Slug == slug, cancellationToken);
 
+    public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+        => context.Manufacturers.AnyAsync(m => m.Id == id, cancellationToken);
+
     public void Add(Manufacturer manufacturer) => context.Manufacturers.Add(manufacturer);
 }
