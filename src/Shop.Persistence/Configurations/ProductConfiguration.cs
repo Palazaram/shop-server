@@ -32,6 +32,14 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasForeignKey(p => p.ManufacturerId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(p => p.AttributeValues)
+            .WithOne()
+            .HasForeignKey(pav => pav.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(p => p.AttributeValues)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(p => new { p.ManufacturerId, p.Name })
             .IsUnique();
 

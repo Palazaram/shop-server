@@ -32,5 +32,28 @@ internal sealed class CategoryRepository(AppDbContext context) : ICategoryReposi
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
         => context.Categories.AnyAsync(c => c.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> GetEffectiveAttributeIdsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        var category = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == categoryId)
+            .Select(c => new { c.Id, c.ParentId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (category is null)
+            return [];
+
+        bool hasOwn = await context.Set<CategoryAttribute>()
+            .AnyAsync(ca => ca.CategoryId == categoryId, cancellationToken);
+
+        Guid owner = CategoryAttributeInheritance.ResolveOwner(
+            category.Id, category.ParentId, hasOwn);
+
+        return await context.Set<CategoryAttribute>()
+            .Where(ca => ca.CategoryId == owner)
+            .Select(ca => ca.AttributeId)
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(Category category) => context.Categories.Add(category);
 }

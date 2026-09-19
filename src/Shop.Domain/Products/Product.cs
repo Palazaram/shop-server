@@ -7,6 +7,7 @@ namespace Shop.Domain.Products;
 
 public sealed class Product : AggregateRoot<Guid>
 {
+    private readonly List<ProductAttributeValue> _attributeValues = [];
     public const int MaxNameLength = 200;
     public const int MaxDescriptionLength = 4000;
 
@@ -29,6 +30,7 @@ public sealed class Product : AggregateRoot<Guid>
     public string? Description { get; private set; }
     public Guid CategoryId { get; private set; }
     public Guid ManufacturerId { get; private set; }
+    public IReadOnlyList<ProductAttributeValue> AttributeValues => _attributeValues;
 
     public static Result<Product, Error> Create(
         string? name,
@@ -92,6 +94,24 @@ public sealed class Product : AggregateRoot<Guid>
             throw new ArgumentException("Manufacturer id must not be empty.", nameof(manufacturerId));
 
         ManufacturerId = manufacturerId;
+    }
+
+    public UnitResult<Error> SetAttributeValues(IReadOnlyList<Guid> valueIds)
+    {
+        ArgumentNullException.ThrowIfNull(valueIds);
+
+        if (valueIds.Any(id => id == Guid.Empty))
+            throw new ArgumentException("Attribute value id must not be empty.", nameof(valueIds));
+
+        if (valueIds.Distinct().Count() != valueIds.Count)
+            return DomainErrors.Products.DuplicateAttributeValue();
+
+        _attributeValues.Clear();
+
+        foreach (Guid valueId in valueIds)
+            _attributeValues.Add(new ProductAttributeValue(Id, valueId));
+
+        return default;
     }
 
     private static Result<string, Error> NormalizeName(string? name)

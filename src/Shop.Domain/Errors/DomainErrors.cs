@@ -268,6 +268,27 @@ public static class DomainErrors
         public static Error ManufacturerIdIsInvalid()
             => Error.Validation("product.manufacturer_id.invalid", 
                 "Manufacturer id must not be empty");
+
+        public static Error AttributeValueIdsAreRequired()
+            => Error.Validation("product.attribute_values.required", 
+                "Attribute value ids are required");
+
+        public static Error AttributeValueIdIsInvalid()
+            => Error.Validation("product.attribute_values.invalid_id",
+                "Attribute value id must not be empty");
+
+        public static Error DuplicateAttributeValue()
+            => Error.Validation("product.attribute_values.duplicate",
+                "The same attribute value is listed more than once");
+
+        public static Error AttributeValueNotFound()
+            => Error.Validation("product.attribute_values.not_found",
+                "One of the attribute values does not exist");
+
+        public static Error AttributeNotApplicable(IEnumerable<string> valueNames)
+            => Error.Validation("product.attribute_values.not_applicable",
+                "These values belong to attributes that are not applicable to this product's category: "
+                + string.Join(", ", valueNames));
     }
 
     public static class ProductVariants

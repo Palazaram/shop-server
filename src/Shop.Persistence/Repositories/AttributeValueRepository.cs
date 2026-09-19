@@ -30,5 +30,17 @@ internal sealed class AttributeValueRepository(AppDbContext context) : IAttribut
             v => v.AttributeId == attributeId && v.Slug == slug,
             cancellationToken);
 
+    public async Task<IReadOnlyList<AttributeValueRef>> GetRefsAsync(IReadOnlyCollection<Guid> valueIds, CancellationToken cancellationToken = default)
+    {
+        if (valueIds.Count == 0)
+            return [];
+
+        return await context.AttributeValues
+            .AsNoTracking()
+            .Where(v => valueIds.Contains(v.Id))
+            .Select(v => new AttributeValueRef(v.Id, v.AttributeId, v.Name))
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(AttributeValue value) => context.AttributeValues.Add(value);
 }

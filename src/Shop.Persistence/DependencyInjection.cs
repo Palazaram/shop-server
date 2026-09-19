@@ -2,6 +2,7 @@
 using Shop.Application.Categories;
 using Shop.Application.Manufacturers;
 using Shop.Application.ProductAttributes;
+using Shop.Application.Products;
 using Shop.Application.ProductVariants;
 using Shop.Domain.Abstractions;
 using Shop.Domain.AttributeValues;
@@ -39,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryQueries, CategoryQueries>();
         services.AddScoped<IProductVariantQueries, ProductVariantQueries>();
         services.AddScoped<IProductAttributeQueries, ProductAttributeQueries>();
+        services.AddScoped<IProductQueries, ProductQueries>();
 
         return services;
     }

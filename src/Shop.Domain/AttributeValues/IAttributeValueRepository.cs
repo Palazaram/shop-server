@@ -18,5 +18,7 @@ public interface IAttributeValueRepository
         Slug slug,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<AttributeValueRef>> GetRefsAsync(IReadOnlyCollection<Guid> valueIds, CancellationToken cancellationToken = default);
+
     void Add(AttributeValue value);
 }

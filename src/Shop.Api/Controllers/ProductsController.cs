@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shop.Application.Abstractions;
+using Shop.Application.Products;
+using Shop.Application.Products.CreateProduct;
+using Shop.Application.Products.SetProductAttributeValues;
+using Shop.Application.Products.UpdateProduct;
 using Shop.Application.ProductVariants;
 using Shop.Application.ProductVariants.CreateProductVariant;
-using Shop.Application.Products.CreateProduct;
-using Shop.Application.Products.UpdateProduct;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
 
@@ -17,6 +19,8 @@ public sealed class ProductsController(
     ICommandHandler<CreateProductCommand, CreateProductResponse> createProductHandler,
     ICommandHandler<UpdateProductCommand> updateProductHandler,
     ICommandHandler<CreateProductVariantCommand, CreateProductVariantResponse> createVariantHandler,
+    ICommandHandler<SetProductAttributeValuesCommand> setAttributeValuesHandler,
+    IProductQueries productQueries,
     IProductVariantQueries variantQueries)
     : ApiControllerBase
 {
@@ -84,13 +88,38 @@ public sealed class ProductsController(
 
     [HttpGet("{productId:guid}/variants")]
     [ProducesResponseType<IReadOnlyList<ProductVariantListItemResponse>>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetVariants(
-        Guid productId,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> GetVariants(Guid productId, CancellationToken cancellationToken)
     {
         IReadOnlyList<ProductVariantListItemResponse> variants =
             await variantQueries.GetByProductAsync(productId, cancellationToken);
 
         return Ok(variants);
+    }
+
+    [HttpPut("{productId:guid}/attribute-values")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetAttributeValues(Guid productId, SetProductAttributeValuesRequest request, CancellationToken cancellationToken)
+    {
+        SetProductAttributeValuesCommand command = new(productId, request.ValueIds);
+
+        UnitResult<Error> result =
+            await setAttributeValuesHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpGet("{productId:guid}/attribute-values")]
+    [ProducesResponseType<IReadOnlyList<ProductAttributeValueGroupResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAttributeValues(Guid productId, CancellationToken cancellationToken)
+    {
+        Maybe<IReadOnlyList<ProductAttributeValueGroupResponse>> result =
+            await productQueries.GetAttributeValuesAsync(productId, cancellationToken);
+
+        return result.HasNoValue
+            ? ToActionResult(DomainErrors.Products.NotFound())
+            : Ok(result.Value);
     }
 }

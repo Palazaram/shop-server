@@ -39,9 +39,7 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
             .ToList();
     }
 
-    public async Task<Maybe<CategoryAttributesResponse>> GetAttributesAsync(
-    Guid categoryId,
-    CancellationToken cancellationToken)
+    public async Task<Maybe<CategoryAttributesResponse>> GetAttributesAsync(Guid categoryId, CancellationToken cancellationToken)
     {
         var category = await context.Categories
             .AsNoTracking()
@@ -55,13 +53,16 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
         IReadOnlyList<CategoryAttributeItemResponse> own =
             await LoadAttributesAsync(category.Id, cancellationToken);
 
-        if (own.Count > 0 || category.ParentId is null)
+        Guid owner = CategoryAttributeInheritance.ResolveOwner(
+            category.Id, category.ParentId, own.Count > 0);
+
+        if (owner == category.Id)
             return new CategoryAttributesResponse(false, null, own);
 
         IReadOnlyList<CategoryAttributeItemResponse> inherited =
-            await LoadAttributesAsync(category.ParentId.Value, cancellationToken);
+            await LoadAttributesAsync(owner, cancellationToken);
 
-        return new CategoryAttributesResponse(true, category.ParentId, inherited);
+        return new CategoryAttributesResponse(true, owner, inherited);
     }
 
     private async Task<IReadOnlyList<CategoryAttributeItemResponse>> LoadAttributesAsync(

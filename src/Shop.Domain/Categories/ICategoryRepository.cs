@@ -15,5 +15,7 @@ public interface ICategoryRepository
 
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Guid>> GetEffectiveAttributeIdsAsync(Guid categoryId, CancellationToken cancellationToken = default);
+
     void Add(Category category);
 }

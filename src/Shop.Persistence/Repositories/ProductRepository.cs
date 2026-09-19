@@ -7,7 +7,9 @@ namespace Shop.Persistence.Repositories;
 internal sealed class ProductRepository(AppDbContext context) : IProductRepository
 {
     public async Task<Maybe<Product>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => await context.Products.FindAsync([id], cancellationToken);
+        => await context.Products
+            .Include(p => p.AttributeValues)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
     public Task<bool> ExistsByNameAsync(
         string name,
