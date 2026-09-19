@@ -1,11 +1,13 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Shop.Application.Abstractions;
 using Shop.Application.Categories;
 using Shop.Application.Categories.CreateCategory;
 using Shop.Application.Categories.RenameCategory;
 using Shop.Application.Categories.SetCategoryAttributes;
+using Shop.Application.Products;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
 
@@ -17,7 +19,8 @@ public sealed class CategoriesController(
     ICommandHandler<CreateCategoryCommand, CreateCategoryResponse> createCategoryHandler,
     ICommandHandler<RenameCategoryCommand> renameCategoryHandler,
     ICommandHandler<SetCategoryAttributesCommand> setAttributesHandler,
-    ICategoryQueries categoryQueries)
+    ICategoryQueries categoryQueries,
+    IProductListQueries productListQueries)
         : ApiControllerBase
 {
     [HttpPost]
@@ -103,5 +106,55 @@ public sealed class CategoriesController(
         return result.HasNoValue
             ? ToActionResult(DomainErrors.Categories.NotFound())
             : Ok(result.Value);
+    }
+
+    [HttpGet("{categoryId:guid}/products")]
+    [AllowAnonymous]
+    [ProducesResponseType<ProductListResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProducts(Guid categoryId, CancellationToken cancellationToken)
+    {
+        ProductListQuery query = BuildProductListQuery(categoryId, Request.Query);
+
+        Result<ProductListResponse, Error> result =
+            await productListQueries.ListAsync(query, cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
+    }
+
+    private static ProductListQuery BuildProductListQuery(Guid categoryId, IQueryCollection source)
+    {
+        const string prefix = "a.";
+
+        List<ProductListFilter> filters = [];
+
+        foreach (KeyValuePair<string, StringValues> pair in source)
+        {
+            if (!pair.Key.StartsWith(prefix, StringComparison.Ordinal))
+                continue;
+
+            string attributeSlug = pair.Key[prefix.Length..];
+
+            string[] valueSlugs = [.. pair.Value
+            .SelectMany(raw => (raw ?? string.Empty).Split(
+                ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct(StringComparer.Ordinal)];
+
+            if (attributeSlug.Length == 0 || valueSlugs.Length == 0)
+                continue;
+
+            filters.Add(new ProductListFilter(attributeSlug, valueSlugs));
+        }
+
+        int page = int.TryParse(source["page"], out int parsedPage) && parsedPage > 0
+            ? parsedPage
+            : 1;
+
+        int pageSize = int.TryParse(source["pageSize"], out int parsedSize)
+            ? Math.Clamp(parsedSize, 1, ProductListQuery.MaxPageSize)
+            : ProductListQuery.DefaultPageSize;
+
+        return new ProductListQuery(categoryId, filters, source["sort"], page, pageSize);
     }
 }

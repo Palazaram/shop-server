@@ -289,6 +289,18 @@ public static class DomainErrors
             => Error.Validation("product.attribute_values.not_applicable",
                 "These values belong to attributes that are not applicable to this product's category: "
                 + string.Join(", ", valueNames));
+
+        public static Error UnknownFilter(string attributeSlug)
+            => Error.Validation("product.filter.unknown_attribute",
+                $"Unknown filter '{attributeSlug}'");
+
+        public static Error UnknownFilterValue(string attributeSlug, string valueSlug)
+            => Error.Validation("product.filter.unknown_value",
+                $"Filter '{attributeSlug}' has no value '{valueSlug}'");
+
+        public static Error UnknownSort(string sort)
+            => Error.Validation("product.sort.unknown",
+                $"Unknown sort order '{sort}'");
     }
 
     public static class ProductVariants

@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IProductVariantQueries, ProductVariantQueries>();
         services.AddScoped<IProductAttributeQueries, ProductAttributeQueries>();
         services.AddScoped<IProductQueries, ProductQueries>();
+        services.AddScoped<IProductListQueries, ProductListQueries>();
 
         return services;
     }
