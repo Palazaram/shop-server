@@ -2,13 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using Shop.Application.Categories;
 using Shop.Domain.Categories;
+using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
 
 internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
 {
-    public async Task<IReadOnlyList<CategoryTreeItemResponse>> GetTreeAsync(
-        CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CategoryTreeItemResponse>> GetTreeAsync(CancellationToken cancellationToken)
     {
         var rows = await context.Categories
             .AsNoTracking()
@@ -65,9 +65,109 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
         return new CategoryAttributesResponse(true, owner, inherited);
     }
 
-    private async Task<IReadOnlyList<CategoryAttributeItemResponse>> LoadAttributesAsync(
-        Guid categoryId,
-        CancellationToken cancellationToken)
+    public async Task<Maybe<CategoryFiltersResponse>> GetFiltersAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        // Категория и её дети одним запросом. Опирается на ограничение глубины дерева двумя
+        // уровнями: поддерево = сама категория плюс её прямые дети.
+        var nodes = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == categoryId || c.ParentId == categoryId)
+            .Select(c => new { c.Id, c.ParentId })
+            .ToListAsync(cancellationToken);
+
+        var self = nodes.Find(n => n.Id == categoryId);
+
+        if (self is null)
+            return Maybe<CategoryFiltersResponse>.None;
+
+        List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
+
+        // Привязки самой категории и родителя — тоже одним запросом.
+        List<Guid> owners = self.ParentId is null
+            ? [categoryId]
+            : [categoryId, self.ParentId.Value];
+
+        var links = await context.Set<CategoryAttribute>()
+            .AsNoTracking()
+            .Where(ca => owners.Contains(ca.CategoryId))
+            .Select(ca => new { ca.CategoryId, ca.AttributeId, ca.DisplayOrder })
+            .ToListAsync(cancellationToken);
+
+        bool hasOwn = links.Exists(l => l.CategoryId == categoryId);
+
+        Guid owner = CategoryAttributeInheritance.ResolveOwner(self.Id, self.ParentId, hasOwn);
+
+        var effective = links
+            .Where(l => l.CategoryId == owner)
+            .OrderBy(l => l.DisplayOrder)
+            .ToList();
+
+        if (effective.Count == 0)
+            return new CategoryFiltersResponse([]);
+
+        HashSet<Guid> attributeIds = [.. effective.Select(l => l.AttributeId)];
+
+        // Сколько товаров поддерева имеют каждое значение.
+        var counts = await (
+            from assignment in context.Set<ProductAttributeValue>()
+            join product in context.Products on assignment.ProductId equals product.Id
+            where subtreeIds.Contains(product.CategoryId)
+            group assignment by assignment.AttributeValueId into grouped
+            select new { ValueId = grouped.Key, Count = grouped.Count() })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        if (counts.Count == 0)
+            return new CategoryFiltersResponse([]);
+
+        HashSet<Guid> countedIds = [.. counts.Select(c => c.ValueId)];
+
+        // Имена и слаги только для встретившихся значений применимых атрибутов.
+        var values = await (
+            from value in context.AttributeValues
+            join attribute in context.ProductAttributes on value.AttributeId equals attribute.Id
+            where countedIds.Contains(value.Id) && attributeIds.Contains(value.AttributeId)
+            select new
+            {
+                value.Id,
+                value.AttributeId,
+                value.Name,
+                value.Slug,
+                AttributeName = attribute.Name,
+                AttributeSlug = attribute.Slug
+            })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        Dictionary<Guid, int> countById = counts.ToDictionary(c => c.ValueId, c => c.Count);
+
+        var byAttribute = values
+            .GroupBy(v => v.AttributeId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        List<CategoryFilterGroupResponse> groups = [];
+
+        foreach (var link in effective)
+        {
+            if (!byAttribute.TryGetValue(link.AttributeId, out var groupValues))
+                continue;
+
+            var head = groupValues[0];
+
+            groups.Add(new CategoryFilterGroupResponse(
+                link.AttributeId,
+                head.AttributeName,
+                head.AttributeSlug.Value,
+                [.. groupValues
+                    .OrderBy(v => v.Name, TextComparers.Ukrainian)
+                    .Select(v => new CategoryFilterValueResponse(
+                        v.Id, v.Name, v.Slug.Value, countById[v.Id]))]));
+        }
+
+        return new CategoryFiltersResponse(groups);
+    }
+
+    private async Task<IReadOnlyList<CategoryAttributeItemResponse>> LoadAttributesAsync(Guid categoryId, CancellationToken cancellationToken)
     {
         var rows = await (
             from link in context.Set<CategoryAttribute>().AsNoTracking()

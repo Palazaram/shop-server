@@ -90,4 +90,18 @@ public sealed class CategoriesController(
             ? ToActionResult(DomainErrors.Categories.NotFound())
             : Ok(result.Value);
     }
+
+    [HttpGet("{categoryId:guid}/filters")]
+    [AllowAnonymous]
+    [ProducesResponseType<CategoryFiltersResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetFilters(Guid categoryId, CancellationToken cancellationToken)
+    {
+        Maybe<CategoryFiltersResponse> result =
+            await categoryQueries.GetFiltersAsync(categoryId, cancellationToken);
+
+        return result.HasNoValue
+            ? ToActionResult(DomainErrors.Categories.NotFound())
+            : Ok(result.Value);
+    }
 }
