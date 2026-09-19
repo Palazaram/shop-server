@@ -299,4 +299,65 @@ public static class DomainErrors
             => Error.Conflict("product_variant.slug.generated_conflict",
                 "A variant with the automatically generated slug already exists, provide a slug explicitly");
     }
+
+    public static class ProductAttributes
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("product_attribute.name.required", "Attribute name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("product_attribute.name.max_length",
+                $"Attribute name must not exceed {maxLength} characters");
+
+        public static Error NotFound()
+            => Error.NotFound("product_attribute.not_found", "Attribute not found");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("product_attribute.name.already_exists",
+                "An attribute with this name already exists");
+
+        public static Error SlugAlreadyExists()
+            => Error.Conflict("product_attribute.slug.already_exists",
+                "An attribute with this slug already exists");
+
+        public static Error SlugCannotBeGenerated()
+            => Error.Validation("product_attribute.slug.cannot_be_generated",
+                "Could not generate a slug from the attribute name, provide it explicitly");
+
+        public static Error GeneratedSlugAlreadyExists()
+            => Error.Conflict("product_attribute.slug.generated_conflict",
+                "An attribute with the automatically generated slug already exists, provide a slug explicitly");
+    }
+
+    public static class AttributeValues
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("attribute_value.name.required", "Value name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("attribute_value.name.max_length",
+                $"Value name must not exceed {maxLength} characters");
+
+        public static Error NotFound()
+            => Error.NotFound("attribute_value.not_found", "Attribute value not found");
+
+        public static Error AttributeNotFound()
+            => Error.Validation("attribute_value.attribute.not_found", "Attribute does not exist");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("attribute_value.name.already_exists",
+                "This attribute already has a value with this name");
+
+        public static Error SlugAlreadyExists()
+            => Error.Conflict("attribute_value.slug.already_exists",
+                "This attribute already has a value with this slug");
+
+        public static Error SlugCannotBeGenerated()
+            => Error.Validation("attribute_value.slug.cannot_be_generated",
+                "Could not generate a slug from the value name, provide it explicitly");
+
+        public static Error GeneratedSlugAlreadyExists()
+            => Error.Conflict("attribute_value.slug.generated_conflict",
+                "This attribute already has a value with the automatically generated slug, provide a slug explicitly");
+    }
 }

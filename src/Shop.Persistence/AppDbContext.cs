@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Shop.Domain.Abstractions;
+using Shop.Domain.AttributeValues;
 using Shop.Domain.Categories;
 using Shop.Domain.Manufacturers;
+using Shop.Domain.ProductAttributes;
 using Shop.Domain.Products;
 using Shop.Domain.ProductVariants;
 using Shop.Domain.RefreshTokens;
@@ -24,6 +26,8 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<Manufacturer> Manufacturers => Set<Manufacturer>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<ProductAttribute> ProductAttributes => Set<ProductAttribute>();
+    public DbSet<AttributeValue> AttributeValues => Set<AttributeValue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
