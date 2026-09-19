@@ -8,6 +8,7 @@ namespace Shop.Domain.Categories;
 
 public sealed class Category : AggregateRoot<Guid>
 {
+    private readonly List<CategoryAttribute> _attributes = [];
     public const int MaxNameLength = 100;
 
     private Category(Guid id, string name, Slug slug, Guid? parentId) : base(id)
@@ -22,6 +23,7 @@ public sealed class Category : AggregateRoot<Guid>
     public string Name { get; private set; } = null!;
     public Slug Slug { get; private set; } = null!;
     public Guid? ParentId { get; private set; }
+    public IReadOnlyList<CategoryAttribute> Attributes => _attributes;
 
     public static Result<Category, Error> Create(string? name, Slug slug, Guid? parentId)
     {
@@ -44,6 +46,24 @@ public sealed class Category : AggregateRoot<Guid>
             return normalizedName.Error;
 
         Name = normalizedName.Value;
+        return default;
+    }
+
+    public UnitResult<Error> SetAttributes(IReadOnlyList<Guid> attributeIds)
+    {
+        ArgumentNullException.ThrowIfNull(attributeIds);
+
+        if (attributeIds.Any(id => id == Guid.Empty))
+            throw new ArgumentException("Attribute id must not be empty.", nameof(attributeIds));
+
+        if (attributeIds.Distinct().Count() != attributeIds.Count)
+            return DomainErrors.Categories.DuplicateAttribute();
+
+        _attributes.Clear();
+
+        for (int index = 0; index < attributeIds.Count; index++)
+            _attributes.Add(new CategoryAttribute(Id, attributeIds[index], index));
+
         return default;
     }
 

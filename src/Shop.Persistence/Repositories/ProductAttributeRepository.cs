@@ -32,5 +32,16 @@ internal sealed class ProductAttributeRepository(AppDbContext context) : IProduc
     public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
         => context.ProductAttributes.AnyAsync(a => a.Slug == slug, cancellationToken);
 
+    public async Task<bool> AllExistAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+            return true;
+
+        int found = await context.ProductAttributes
+            .CountAsync(a => ids.Contains(a.Id), cancellationToken);
+
+        return found == ids.Count;
+    }
+
     public void Add(ProductAttribute attribute) => context.ProductAttributes.Add(attribute);
 }

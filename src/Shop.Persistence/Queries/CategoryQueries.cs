@@ -1,6 +1,7 @@
-﻿using System.Globalization;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Shop.Application.Categories;
+using Shop.Domain.Categories;
 
 namespace Shop.Persistence.Queries;
 
@@ -35,6 +36,48 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
                 subcategories.TryGetValue(row.Id, out List<CategoryTreeItemResponse>? children)
                     ? children
                     : []))
+            .ToList();
+    }
+
+    public async Task<Maybe<CategoryAttributesResponse>> GetAttributesAsync(
+    Guid categoryId,
+    CancellationToken cancellationToken)
+    {
+        var category = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == categoryId)
+            .Select(c => new { c.Id, c.ParentId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (category is null)
+            return Maybe<CategoryAttributesResponse>.None;
+
+        IReadOnlyList<CategoryAttributeItemResponse> own =
+            await LoadAttributesAsync(category.Id, cancellationToken);
+
+        if (own.Count > 0 || category.ParentId is null)
+            return new CategoryAttributesResponse(false, null, own);
+
+        IReadOnlyList<CategoryAttributeItemResponse> inherited =
+            await LoadAttributesAsync(category.ParentId.Value, cancellationToken);
+
+        return new CategoryAttributesResponse(true, category.ParentId, inherited);
+    }
+
+    private async Task<IReadOnlyList<CategoryAttributeItemResponse>> LoadAttributesAsync(
+        Guid categoryId,
+        CancellationToken cancellationToken)
+    {
+        var rows = await (
+            from link in context.Set<CategoryAttribute>().AsNoTracking()
+            join attribute in context.ProductAttributes on link.AttributeId equals attribute.Id
+            where link.CategoryId == categoryId
+            orderby link.DisplayOrder
+            select new { attribute.Id, attribute.Name, attribute.Slug })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(row => new CategoryAttributeItemResponse(row.Id, row.Name, row.Slug.Value))
             .ToList();
     }
 }

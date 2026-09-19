@@ -28,6 +28,14 @@ internal sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasForeignKey(c => c.ParentId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(c => c.Attributes)
+            .WithOne()
+            .HasForeignKey(ca => ca.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(c => c.Attributes)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(c => new { c.ParentId, c.Name })
             .IsUnique();
 

@@ -8,7 +8,9 @@ namespace Shop.Persistence.Repositories;
 internal sealed class CategoryRepository(AppDbContext context) : ICategoryRepository
 {
     public async Task<Maybe<Category>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => await context.Categories.FindAsync([id], cancellationToken);
+        => await context.Categories
+            .Include(c => c.Attributes)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public Task<bool> ExistsByNameAsync(string name, Guid? parentId, Guid? excludeCategoryId, CancellationToken cancellationToken = default)
     {

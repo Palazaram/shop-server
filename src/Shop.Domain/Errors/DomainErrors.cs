@@ -157,6 +157,20 @@ public static class DomainErrors
 
         public static Error NotFound()
             => Error.NotFound("category.not_found", "Category not found");
+
+        public static Error DuplicateAttribute()
+            => Error.Validation("category.attributes.duplicate",
+                "The same attribute is listed more than once");
+
+        public static Error AttributeNotFound()
+            => Error.Validation("category.attributes.not_found",
+                "One of the attributes does not exist");
+
+        public static Error AttributeIdsAreRequired()
+            => Error.Validation("category.attributes.required", "Attribute ids are required");
+
+        public static Error AttributeIdIsInvalid()
+            => Error.Validation("category.attributes.invalid_id", "Attribute id must not be empty");
     }
 
     public static class Manufacturers

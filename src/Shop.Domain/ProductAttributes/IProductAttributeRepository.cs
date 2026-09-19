@@ -16,5 +16,7 @@ public interface IProductAttributeRepository
 
     Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default);
 
+    Task<bool> AllExistAsync(IReadOnlyCollection<Guid> ids,CancellationToken cancellationToken = default);
+
     void Add(ProductAttribute attribute);
 }

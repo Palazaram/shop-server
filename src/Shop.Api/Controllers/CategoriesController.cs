@@ -5,6 +5,7 @@ using Shop.Application.Abstractions;
 using Shop.Application.Categories;
 using Shop.Application.Categories.CreateCategory;
 using Shop.Application.Categories.RenameCategory;
+using Shop.Application.Categories.SetCategoryAttributes;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
 
@@ -15,6 +16,7 @@ namespace Shop.Api.Controllers;
 public sealed class CategoriesController(
     ICommandHandler<CreateCategoryCommand, CreateCategoryResponse> createCategoryHandler,
     ICommandHandler<RenameCategoryCommand> renameCategoryHandler,
+    ICommandHandler<SetCategoryAttributesCommand> setAttributesHandler,
     ICategoryQueries categoryQueries)
         : ApiControllerBase
 {
@@ -60,5 +62,32 @@ public sealed class CategoriesController(
             await categoryQueries.GetTreeAsync(cancellationToken);
 
         return Ok(tree);
+    }
+
+    [HttpPut("{categoryId:guid}/attributes")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetAttributes(Guid categoryId, SetCategoryAttributesRequest request, CancellationToken cancellationToken)
+    {
+        SetCategoryAttributesCommand command = new(categoryId, request.AttributeIds);
+
+        UnitResult<Error> result =
+            await setAttributesHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpGet("{categoryId:guid}/attributes")]
+    [ProducesResponseType<CategoryAttributesResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAttributes(Guid categoryId, CancellationToken cancellationToken)
+    {
+        Maybe<CategoryAttributesResponse> result =
+            await categoryQueries.GetAttributesAsync(categoryId, cancellationToken);
+
+        return result.HasNoValue
+            ? ToActionResult(DomainErrors.Categories.NotFound())
+            : Ok(result.Value);
     }
 }
