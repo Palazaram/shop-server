@@ -1,4 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
+using Shop.Application.Products;
+using Shop.Domain.Errors;
 
 namespace Shop.Application.Categories;
 
@@ -38,6 +40,8 @@ public interface ICategoryQueries
     Task<Maybe<CategoryAttributesResponse>> GetAttributesAsync(
         Guid categoryId, CancellationToken cancellationToken);
 
-    Task<Maybe<CategoryFiltersResponse>> GetFiltersAsync(
-        Guid categoryId, CancellationToken cancellationToken);
+    Task<Result<CategoryFiltersResponse, Error>> GetFiltersAsync(
+        Guid categoryId,
+        IReadOnlyList<ProductListFilter> filters,
+        CancellationToken cancellationToken);
 }

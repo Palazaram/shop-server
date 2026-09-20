@@ -31,8 +31,8 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
 
         List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
 
-        Result<List<List<Guid>>, Error> resolvedFilters =
-            await ResolveFiltersAsync(query.Filters, cancellationToken);
+        Result<List<ResolvedAttributeFilter>, Error> resolvedFilters =
+            await AttributeFilterResolver.ResolveAsync(context, query.Filters, cancellationToken);
 
         if (resolvedFilters.IsFailure)
             return resolvedFilters.Error;
@@ -46,8 +46,10 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
 
         IQueryable<ProductAttributeValue> links = context.Set<ProductAttributeValue>();
 
-        foreach (List<Guid> valueIds in resolvedFilters.Value)
+        foreach (ResolvedAttributeFilter filter in resolvedFilters.Value)
         {
+            List<Guid> valueIds = filter.ValueIds;
+
             rows = rows.Where(row => links.Any(
                 link => link.ProductId == row.product.Id
                      && valueIds.Contains(link.AttributeValueId)));
@@ -99,60 +101,5 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
             : (int)Math.Ceiling(totalItems / (double)query.PageSize);
 
         return new ProductListResponse(items, query.Page, query.PageSize, totalItems, totalPages);
-    }
-
-    private async Task<Result<List<List<Guid>>, Error>> ResolveFiltersAsync(
-        IReadOnlyList<ProductListFilter> filters, CancellationToken cancellationToken)
-    {
-        List<List<Guid>> resolved = [];
-
-        if (filters.Count == 0)
-            return resolved;
-
-        var attributes = await context.ProductAttributes.AsNoTracking()
-            .Select(a => new { a.Id, a.Slug })
-            .ToListAsync(cancellationToken);
-
-        Dictionary<string, Guid> attributeBySlug =
-            attributes.ToDictionary(a => a.Slug.Value, a => a.Id, StringComparer.Ordinal);
-
-        List<Guid> attributeIds = [];
-
-        foreach (ProductListFilter filter in filters)
-        {
-            if (!attributeBySlug.TryGetValue(filter.AttributeSlug, out Guid attributeId))
-                return DomainErrors.Products.UnknownFilter(filter.AttributeSlug);
-
-            attributeIds.Add(attributeId);
-        }
-
-        var values = await context.AttributeValues.AsNoTracking()
-            .Where(v => attributeIds.Contains(v.AttributeId))
-            .Select(v => new { v.Id, v.AttributeId, v.Slug })
-            .ToListAsync(cancellationToken);
-
-        Dictionary<(Guid, string), Guid> valueBySlug =
-            values.ToDictionary(v => (v.AttributeId, v.Slug.Value), v => v.Id);
-
-        for (int index = 0; index < filters.Count; index++)
-        {
-            ProductListFilter filter = filters[index];
-            Guid attributeId = attributeIds[index];
-
-            List<Guid> valueIds = [];
-
-            foreach (string valueSlug in filter.ValueSlugs)
-            {
-                if (!valueBySlug.TryGetValue((attributeId, valueSlug), out Guid valueId))
-                    return DomainErrors.Products
-                        .UnknownFilterValue(filter.AttributeSlug, valueSlug);
-
-                valueIds.Add(valueId);
-            }
-
-            resolved.Add(valueIds);
-        }
-
-        return resolved;
     }
 }

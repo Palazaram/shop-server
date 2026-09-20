@@ -97,15 +97,14 @@ public sealed class CategoriesController(
     [HttpGet("{categoryId:guid}/filters")]
     [AllowAnonymous]
     [ProducesResponseType<CategoryFiltersResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetFilters(Guid categoryId, CancellationToken cancellationToken)
     {
-        Maybe<CategoryFiltersResponse> result =
-            await categoryQueries.GetFiltersAsync(categoryId, cancellationToken);
+        Result<CategoryFiltersResponse, Error> result = await categoryQueries.GetFiltersAsync(
+            categoryId, ParseAttributeFilters(Request.Query), cancellationToken);
 
-        return result.HasNoValue
-            ? ToActionResult(DomainErrors.Categories.NotFound())
-            : Ok(result.Value);
+        return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
 
     [HttpGet("{categoryId:guid}/products")]
@@ -123,7 +122,7 @@ public sealed class CategoriesController(
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
 
-    private static ProductListQuery BuildProductListQuery(Guid categoryId, IQueryCollection source)
+    private static List<ProductListFilter> ParseAttributeFilters(IQueryCollection source)
     {
         const string prefix = "a.";
 
@@ -147,6 +146,11 @@ public sealed class CategoriesController(
             filters.Add(new ProductListFilter(attributeSlug, valueSlugs));
         }
 
+        return filters;
+    }
+
+    private static ProductListQuery BuildProductListQuery(Guid categoryId, IQueryCollection source)
+    {
         int page = int.TryParse(source["page"], out int parsedPage) && parsedPage > 0
             ? parsedPage
             : 1;
@@ -155,6 +159,7 @@ public sealed class CategoriesController(
             ? Math.Clamp(parsedSize, 1, ProductListQuery.MaxPageSize)
             : ProductListQuery.DefaultPageSize;
 
-        return new ProductListQuery(categoryId, filters, source["sort"], page, pageSize);
+        return new ProductListQuery(
+            categoryId, ParseAttributeFilters(source), source["sort"], page, pageSize);
     }
 }
