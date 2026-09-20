@@ -5,7 +5,7 @@ namespace Shop.Domain.Common;
 
 public sealed class Money : SimpleValueObject<decimal>
 {
-    private Money(decimal amount) : base(amount) { }
+    private Money(decimal value) : base(value) { }
 
     public static Result<Money, Error> Create(decimal amount)
     {

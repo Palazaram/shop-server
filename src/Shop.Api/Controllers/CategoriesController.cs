@@ -10,6 +10,7 @@ using Shop.Application.Categories.SetCategoryAttributes;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
+using System.Globalization;
 
 namespace Shop.Api.Controllers;
 
@@ -102,8 +103,13 @@ public sealed class CategoriesController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetFilters(Guid categoryId, CancellationToken cancellationToken)
     {
-        Result<CategoryFiltersResponse, Error> result = await categoryFilterQueries.GetAsync(
-            categoryId, ParseFilters(Request.Query), cancellationToken);
+        Result<ProductFilterSet, Error> filters = ParseFilters(Request.Query);
+
+        if (filters.IsFailure)
+            return ToActionResult(filters.Error);
+
+        Result<CategoryFiltersResponse, Error> result =
+            await categoryFilterQueries.GetAsync(categoryId, filters.Value, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
@@ -115,15 +121,18 @@ public sealed class CategoriesController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProducts(Guid categoryId, CancellationToken cancellationToken)
     {
-        ProductListQuery query = BuildProductListQuery(categoryId, Request.Query);
+        Result<ProductListQuery, Error> query = BuildProductListQuery(categoryId, Request.Query);
+
+        if (query.IsFailure)
+            return ToActionResult(query.Error);
 
         Result<ProductListResponse, Error> result =
-            await productListQueries.ListAsync(query, cancellationToken);
+            await productListQueries.ListAsync(query.Value, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
 
-    private static List<ProductFilter> ParseFilters(IQueryCollection source)
+    private static Result<ProductFilterSet, Error> ParseFilters(IQueryCollection source)
     {
         List<ProductFilter> filters = [];
 
@@ -133,7 +142,9 @@ public sealed class CategoriesController(
                 pair.Key.StartsWith(ProductFilter.AttributePrefix, StringComparison.Ordinal)
                 && pair.Key.Length > ProductFilter.AttributePrefix.Length;
 
-            bool isFixed = pair.Key is ProductFilter.ManufacturerKey or ProductFilter.CountryKey;
+            bool isFixed = pair.Key is ProductFilter.ManufacturerKey
+                                   or ProductFilter.CountryKey
+                                   or ProductFilter.PackagingKey;
 
             if (!isAttribute && !isFixed)
                 continue;
@@ -149,19 +160,53 @@ public sealed class CategoriesController(
             filters.Add(new ProductFilter(pair.Key, valueKeys));
         }
 
-        return filters;
+        (decimal? Value, string? Invalid) min = ReadPrice(source, ProductFilterSet.PriceMinKey);
+
+        if (min.Invalid is not null)
+            return DomainErrors.Products.InvalidPrice(ProductFilterSet.PriceMinKey, min.Invalid);
+
+        (decimal? Value, string? Invalid) max = ReadPrice(source, ProductFilterSet.PriceMaxKey);
+
+        if (max.Invalid is not null)
+            return DomainErrors.Products.InvalidPrice(ProductFilterSet.PriceMaxKey, max.Invalid);
+
+        return new ProductFilterSet(filters, min.Value, max.Value);
     }
 
-    private static ProductListQuery BuildProductListQuery(Guid categoryId, IQueryCollection source)
+    private static (decimal? Value, string? Invalid) ReadPrice(IQueryCollection source, string key)
     {
-        int page = int.TryParse(source["page"], out int parsedPage) && parsedPage > 0
-            ? parsedPage
-            : 1;
+        string? raw = source[key];
 
-        int pageSize = int.TryParse(source["pageSize"], out int parsedSize)
+        if (string.IsNullOrWhiteSpace(raw))
+            return (null, null);
+
+        return decimal.TryParse(raw, PriceStyles, CultureInfo.InvariantCulture, out decimal parsed)
+            ? (parsed, null)
+            : (null, raw);
+    }
+
+    private const NumberStyles PriceStyles =
+        NumberStyles.AllowLeadingWhite
+        | NumberStyles.AllowTrailingWhite
+        | NumberStyles.AllowLeadingSign
+        | NumberStyles.AllowDecimalPoint;
+
+    private static Result<ProductListQuery, Error> BuildProductListQuery(
+        Guid categoryId, IQueryCollection source)
+    {
+        Result<ProductFilterSet, Error> filters = ParseFilters(source);
+
+        if (filters.IsFailure)
+            return filters.Error;
+
+        int page = int.TryParse(source["page"], NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out int parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+        int pageSize = int.TryParse(source["pageSize"], NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out int parsedSize)
             ? Math.Clamp(parsedSize, 1, ProductListQuery.MaxPageSize)
             : ProductListQuery.DefaultPageSize;
 
-        return new ProductListQuery(categoryId, ParseFilters(source), source["sort"], page, pageSize);
+        return new ProductListQuery(categoryId, filters.Value, source["sort"], page, pageSize);
     }
 }

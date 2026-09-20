@@ -32,28 +32,26 @@ internal sealed class ProductListQueries(AppDbContext context, ISlugGenerator sl
         List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
 
         Result<List<ResolvedFilter>, Error> resolvedFilters = await ProductFilterResolver
-            .ResolveAsync(context, slugGenerator, query.Filters, cancellationToken);
+            .ResolveAsync(context, slugGenerator, query.Filters.Filters, cancellationToken);
 
         if (resolvedFilters.IsFailure)
             return resolvedFilters.Error;
 
-        IQueryable<Guid> matching = ProductFilterResolver
-            .MatchingProductIds(context, subtreeIds, resolvedFilters.Value);
-
-        var rows = from variant in context.ProductVariants.AsNoTracking()
+        var rows = from variant in ProductFilterResolver.MatchingVariants(
+                       context, subtreeIds, resolvedFilters.Value,
+                       query.Filters.PriceMin, query.Filters.PriceMax)
                    join product in context.Products on variant.ProductId equals product.Id
                    join manufacturer in context.Manufacturers
                        on product.ManufacturerId equals manufacturer.Id
-                   where matching.Contains(product.Id)
                    select new { variant, product, manufacturer };
 
         int totalItems = await rows.CountAsync(cancellationToken);
 
         var ordered = sort switch
         {
-            SortPriceAsc => rows.OrderBy(row => row.variant.Price)
+            SortPriceAsc => rows.OrderBy(row => row.variant.Price.Value)
                                 .ThenBy(row => row.variant.Id),
-            SortPriceDesc => rows.OrderByDescending(row => row.variant.Price)
+            SortPriceDesc => rows.OrderByDescending(row => row.variant.Price.Value)
                                  .ThenBy(row => row.variant.Id),
             _ => rows.OrderByDescending(row => row.variant.Id)
         };

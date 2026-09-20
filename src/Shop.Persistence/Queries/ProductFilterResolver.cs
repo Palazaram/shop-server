@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Shop.Application.Abstractions;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
+using Shop.Domain.ProductVariants;
 using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
@@ -10,10 +11,22 @@ namespace Shop.Persistence.Queries;
 internal enum ResolvedFilterKind
 {
     AttributeValues = 1,
-    Manufacturers = 2
+    Manufacturers = 2,
+    Packagings = 3
 }
 
-internal sealed record ResolvedFilter(string GroupKey, ResolvedFilterKind Kind, List<Guid> Ids);
+internal sealed record ResolvedFilter(
+    string GroupKey,
+    ResolvedFilterKind Kind,
+    List<Guid> Ids,
+    List<string> Keys)
+{
+    public static ResolvedFilter ByIds(string groupKey, ResolvedFilterKind kind, List<Guid> ids)
+        => new(groupKey, kind, ids, []);
+
+    public static ResolvedFilter ByKeys(string groupKey, List<string> keys)
+        => new(groupKey, ResolvedFilterKind.Packagings, [], keys);
+}
 
 internal sealed record ManufacturerRef(
     Guid Id, string Slug, string Name, string Country, string CountryKey);
@@ -51,6 +64,7 @@ internal static class ProductFilterResolver
         bool needsAttributes = filters.Any(f => IsAttribute(f.GroupKey));
         bool needsManufacturers = filters.Any(f =>
             f.GroupKey is ProductFilter.ManufacturerKey or ProductFilter.CountryKey);
+        bool needsPackagings = filters.Any(f => f.GroupKey == ProductFilter.PackagingKey);
 
         Dictionary<string, Guid> attributeBySlug = [];
         Dictionary<(Guid, string), Guid> valueBySlug = [];
@@ -93,6 +107,19 @@ internal static class ProductFilterResolver
             ? await LoadManufacturersAsync(context, slugGenerator, cancellationToken)
             : [];
 
+        HashSet<string> knownPackagings = [];
+
+        if (needsPackagings)
+        {
+            List<string> keys = await context.ProductVariants
+                .AsNoTracking()
+                .Select(v => v.Packaging.Key)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            knownPackagings = [.. keys];
+        }
+
         foreach (ProductFilter filter in filters)
         {
             if (IsAttribute(filter.GroupKey))
@@ -109,7 +136,7 @@ internal static class ProductFilterResolver
                     valueIds.Add(valueId);
                 }
 
-                resolved.Add(new ResolvedFilter(
+                resolved.Add(ResolvedFilter.ByIds(
                     filter.GroupKey, ResolvedFilterKind.AttributeValues, valueIds));
                 continue;
             }
@@ -128,7 +155,7 @@ internal static class ProductFilterResolver
                     ids.Add(found.Id);
                 }
 
-                resolved.Add(new ResolvedFilter(
+                resolved.Add(ResolvedFilter.ByIds(
                     filter.GroupKey, ResolvedFilterKind.Manufacturers, ids));
                 continue;
             }
@@ -152,8 +179,24 @@ internal static class ProductFilterResolver
                     ids.AddRange(matched);
                 }
 
-                resolved.Add(new ResolvedFilter(
+                resolved.Add(ResolvedFilter.ByIds(
                     filter.GroupKey, ResolvedFilterKind.Manufacturers, ids));
+                continue;
+            }
+
+            if (filter.GroupKey == ProductFilter.PackagingKey)
+            {
+                List<string> keys = [];
+
+                foreach (string key in filter.ValueKeys)
+                {
+                    if (!knownPackagings.Contains(key))
+                        return DomainErrors.Products.UnknownFilterValue(filter.GroupKey, key);
+
+                    keys.Add(key);
+                }
+
+                resolved.Add(ResolvedFilter.ByKeys(filter.GroupKey, keys));
                 continue;
             }
 
@@ -163,7 +206,39 @@ internal static class ProductFilterResolver
         return resolved;
     }
 
-    public static IQueryable<Guid> MatchingProductIds(
+    public static IQueryable<ProductVariant> MatchingVariants(
+        AppDbContext context,
+        List<Guid> subtreeIds,
+        IEnumerable<ResolvedFilter> filters,
+        decimal? priceMin,
+        decimal? priceMax)
+    {
+        List<ResolvedFilter> all = [.. filters];
+
+        IQueryable<Guid> productIds = MatchingProductIds(
+            context, subtreeIds, all.Where(f => f.Kind != ResolvedFilterKind.Packagings));
+
+        IQueryable<ProductVariant> variants = context.ProductVariants
+            .AsNoTracking()
+            .Where(v => productIds.Contains(v.ProductId));
+
+        foreach (ResolvedFilter filter in all.Where(f => f.Kind == ResolvedFilterKind.Packagings))
+        {
+            List<string> keys = filter.Keys;
+
+            variants = variants.Where(v => keys.Contains(v.Packaging.Key));
+        }
+
+        if (priceMin is decimal min)
+            variants = variants.Where(v => v.Price.Value >= min);
+
+        if (priceMax is decimal max)
+            variants = variants.Where(v => v.Price.Value <= max);
+
+        return variants;
+    }
+
+    private static IQueryable<Guid> MatchingProductIds(
         AppDbContext context,
         List<Guid> subtreeIds,
         IEnumerable<ResolvedFilter> filters)

@@ -8,11 +8,25 @@ public sealed record ProductFilter(string GroupKey, IReadOnlyList<string> ValueK
     public const string AttributePrefix = "a.";
     public const string ManufacturerKey = "manufacturer";
     public const string CountryKey = "country";
+    public const string PackagingKey = "packaging";
+}
+
+public sealed record ProductFilterSet(
+    IReadOnlyList<ProductFilter> Filters,
+    decimal? PriceMin,
+    decimal? PriceMax)
+{
+    public const string PriceMinKey = "priceMin";
+    public const string PriceMaxKey = "priceMax";
+
+    /// <summary>Не ключ адреса, а опознание цены как группы — нужно, чтобы границы
+    /// диапазона считались без учёта самого фильтра по цене.</summary>
+    public const string PriceGroupKey = "price";
 }
 
 public sealed record ProductListQuery(
     Guid CategoryId,
-    IReadOnlyList<ProductFilter> Filters,
+    ProductFilterSet Filters,
     string? Sort,
     int Page,
     int PageSize)

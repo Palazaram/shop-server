@@ -24,10 +24,13 @@ internal sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Pro
             .HasMaxLength(Slug.MaxLength)
             .IsRequired();
 
-        builder.Property(v => v.Price)
-            .HasConversion(price => price.Value, value => Money.Create(value).Value)
-            .HasPrecision(18, 2)
-            .IsRequired();
+        builder.ComplexProperty(v => v.Price, price =>
+        {
+            price.Property(p => p.Value)
+                .HasColumnName("price")
+                .HasPrecision(18, 2)
+                .IsRequired();
+        });
 
         builder.ComplexProperty(v => v.Packaging, packaging =>
         {
@@ -40,6 +43,11 @@ internal sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Pro
                 .HasColumnName("packaging_unit")
                 .HasConversion<string>()
                 .HasMaxLength(20)
+                .IsRequired();
+
+            packaging.Property(p => p.Key)
+                .HasColumnName("packaging_key")
+                .HasMaxLength(40)
                 .IsRequired();
         });
 

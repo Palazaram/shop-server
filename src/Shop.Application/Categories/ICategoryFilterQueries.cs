@@ -5,7 +5,8 @@ using Shop.Domain.Errors;
 namespace Shop.Application.Categories;
 
 public sealed record CategoryFiltersResponse(
-    IReadOnlyList<CategoryFilterGroupResponse> Groups);
+    IReadOnlyList<CategoryFilterGroupResponse> Groups,
+    PriceRangeResponse? PriceRange);
 
 public sealed record CategoryFilterGroupResponse(
     string Key,
@@ -17,10 +18,12 @@ public sealed record CategoryFilterValueResponse(
     string Name,
     int ProductCount);
 
+public sealed record PriceRangeResponse(decimal Min, decimal Max);
+
 public interface ICategoryFilterQueries
 {
     Task<Result<CategoryFiltersResponse, Error>> GetAsync(
         Guid categoryId,
-        IReadOnlyList<ProductFilter> filters,
+        ProductFilterSet filters,
         CancellationToken cancellationToken);
 }

@@ -5,6 +5,7 @@ using Shop.Application.Categories;
 using Shop.Application.Products;
 using Shop.Domain.Categories;
 using Shop.Domain.Errors;
+using Shop.Domain.ProductVariants;
 using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
@@ -14,10 +15,11 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
 {
     private const string ManufacturerGroupName = "Виробник";
     private const string CountryGroupName = "Країна походження";
+    private const string PackagingGroupName = "Фасовка";
 
     public async Task<Result<CategoryFiltersResponse, Error>> GetAsync(
         Guid categoryId,
-        IReadOnlyList<ProductFilter> filters,
+        ProductFilterSet filters,
         CancellationToken cancellationToken)
     {
         var nodes = await context.Categories
@@ -34,56 +36,69 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
         List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
 
         Result<List<ResolvedFilter>, Error> resolved = await ProductFilterResolver
-            .ResolveAsync(context, slugGenerator, filters, cancellationToken);
+            .ResolveAsync(context, slugGenerator, filters.Filters, cancellationToken);
 
         if (resolved.IsFailure)
             return resolved.Error;
 
         List<ResolvedFilter> applied = resolved.Value;
 
-        Dictionary<string, HashSet<string>> selected = filters.ToDictionary(
+        Dictionary<string, HashSet<string>> selected = filters.Filters.ToDictionary(
             f => f.GroupKey,
             f => new HashSet<string>(f.ValueKeys, StringComparer.Ordinal),
             StringComparer.Ordinal);
 
         IQueryable<ProductAttributeValue> assignments = context.Set<ProductAttributeValue>();
 
-        // Счётчики группы считаются со всеми фильтрами, кроме фильтра самой группы.
-        IQueryable<Guid> Matching(string? exceptGroupKey)
-            => ProductFilterResolver.MatchingProductIds(
+        IQueryable<ProductVariant> Matching(string? exceptGroupKey)
+        {
+            bool exceptPrice = exceptGroupKey == ProductFilterSet.PriceGroupKey;
+
+            return ProductFilterResolver.MatchingVariants(
                 context,
                 subtreeIds,
                 exceptGroupKey is null
                     ? applied
-                    : applied.Where(f => f.GroupKey != exceptGroupKey));
+                    : applied.Where(f => f.GroupKey != exceptGroupKey),
+                exceptPrice ? null : filters.PriceMin,
+                exceptPrice ? null : filters.PriceMax);
+        }
 
-        async Task<Dictionary<Guid, int>> CountByValueAsync(IQueryable<Guid> productIds)
+        async Task<Dictionary<Guid, int>> CountByValueAsync(IQueryable<ProductVariant> variants)
         {
             var counted = await (
-                from assignment in assignments
-                join variant in context.ProductVariants
-                    on assignment.ProductId equals variant.ProductId
-                where productIds.Contains(assignment.ProductId)
+                from variant in variants
+                join assignment in assignments on variant.ProductId equals assignment.ProductId
                 group variant by assignment.AttributeValueId into grouped
                 select new { Key = grouped.Key, Count = grouped.Count() })
-                .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
             return counted.ToDictionary(c => c.Key, c => c.Count);
         }
 
-        async Task<Dictionary<Guid, int>> CountByManufacturerAsync(IQueryable<Guid> productIds)
+        async Task<Dictionary<Guid, int>> CountByManufacturerAsync(
+            IQueryable<ProductVariant> variants)
         {
             var counted = await (
-                from variant in context.ProductVariants
+                from variant in variants
                 join product in context.Products on variant.ProductId equals product.Id
-                where productIds.Contains(product.Id)
                 group variant by product.ManufacturerId into grouped
                 select new { Key = grouped.Key, Count = grouped.Count() })
-                .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
             return counted.ToDictionary(c => c.Key, c => c.Count);
+        }
+
+        async Task<Dictionary<string, int>> CountByPackagingAsync(
+            IQueryable<ProductVariant> variants)
+        {
+            var counted = await (
+                from variant in variants
+                group variant by variant.Packaging.Key into grouped
+                select new { Key = grouped.Key, Count = grouped.Count() })
+                .ToListAsync(cancellationToken);
+
+            return counted.ToDictionary(c => c.Key, c => c.Count, StringComparer.Ordinal);
         }
 
         List<CategoryFilterGroupResponse> groups = [];
@@ -188,12 +203,7 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
             : await CountByManufacturerAsync(Matching(ProductFilter.ManufacturerKey));
 
         var visibleManufacturers = manufacturers
-            .Select(m => new
-            {
-                m.Slug,
-                m.Name,
-                Count = manufacturerCounts.GetValueOrDefault(m.Id)
-            })
+            .Select(m => new { m.Slug, m.Name, Count = manufacturerCounts.GetValueOrDefault(m.Id) })
             .Where(entry => entry.Count > 0 || chosenManufacturers.Contains(entry.Slug))
             .OrderBy(entry => entry.Name, TextComparers.Ukrainian)
             .ToList();
@@ -235,6 +245,55 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
                     entry.Key, entry.Name, entry.Count))]));
         }
 
-        return new CategoryFiltersResponse(groups);
+        // --- Фасовка
+
+        HashSet<string> chosenPackagings =
+            selected.GetValueOrDefault(ProductFilter.PackagingKey, []);
+
+        var packagingRows = await ProductFilterResolver
+            .MatchingVariants(context, subtreeIds, [], null, null)
+            .Select(v => new { v.Packaging.Key, v.Packaging.Value, v.Packaging.Unit })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        Dictionary<string, int> packagingCounts = chosenPackagings.Count == 0
+            ? await CountByPackagingAsync(Matching(null))
+            : await CountByPackagingAsync(Matching(ProductFilter.PackagingKey));
+
+        var visiblePackagings = packagingRows
+            .Select(row => new
+            {
+                row.Key,
+                row.Unit,
+                row.Value,
+                Name = Packaging.Create(row.Value, row.Unit).Value.ToString(),
+                Count = packagingCounts.GetValueOrDefault(row.Key)
+            })
+            .Where(entry => entry.Count > 0 || chosenPackagings.Contains(entry.Key))
+            .OrderBy(entry => entry.Unit)
+            .ThenBy(entry => entry.Value)
+            .ToList();
+
+        if (visiblePackagings.Count > 0)
+        {
+            groups.Add(new CategoryFilterGroupResponse(
+                ProductFilter.PackagingKey,
+                PackagingGroupName,
+                [.. visiblePackagings.Select(entry => new CategoryFilterValueResponse(
+                    entry.Key, entry.Name, entry.Count))]));
+        }
+
+        // --- Диапазон цены
+
+        IQueryable<ProductVariant> priceScope = Matching(ProductFilterSet.PriceGroupKey);
+
+        decimal? minPrice = await priceScope.MinAsync(v => (decimal?)v.Price.Value, cancellationToken);
+        decimal? maxPrice = await priceScope.MaxAsync(v => (decimal?)v.Price.Value, cancellationToken);
+
+        PriceRangeResponse? priceRange = minPrice is decimal low && maxPrice is decimal high
+            ? new PriceRangeResponse(low, high)
+            : null;
+
+        return new CategoryFiltersResponse(groups, priceRange);
     }
 }

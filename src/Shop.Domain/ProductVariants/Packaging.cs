@@ -10,10 +10,12 @@ public sealed class Packaging : ValueObject
     {
         Value = value;
         Unit = unit;
+        Key = BuildKey(value, unit);
     }
 
     public decimal Value { get; }
     public UnitOfMeasure Unit { get; }
+    public string Key { get; private set; } = null!;
 
     public static Result<Packaging, Error> Create(decimal value, UnitOfMeasure unit)
     {
@@ -36,4 +38,10 @@ public sealed class Packaging : ValueObject
         yield return Value;
         yield return Unit;
     }
+
+    // Опознание, в отличие от ToString(), который про отображение.
+    // Единица берётся именем члена перечисления, а не символом: символ — это то,
+    // что видит человек, и его можно поменять, не ломая ссылки.
+    private static string BuildKey(decimal value, UnitOfMeasure unit)
+        => $"{value.ToString("0.###", CultureInfo.InvariantCulture)}-{unit.ToString().ToLowerInvariant()}";
 }

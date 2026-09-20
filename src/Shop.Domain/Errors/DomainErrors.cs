@@ -301,6 +301,10 @@ public static class DomainErrors
         public static Error UnknownSort(string sort)
             => Error.Validation("product.sort.unknown",
                 $"Unknown sort order '{sort}'");
+
+        public static Error InvalidPrice(string key, string value)
+            => Error.Validation("product.filter.invalid_price",
+                $"Parameter '{key}' is not a valid price: '{value}'");
     }
 
     public static class ProductVariants
