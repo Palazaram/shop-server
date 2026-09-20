@@ -20,7 +20,8 @@ public sealed class CategoriesController(
     ICommandHandler<RenameCategoryCommand> renameCategoryHandler,
     ICommandHandler<SetCategoryAttributesCommand> setAttributesHandler,
     ICategoryQueries categoryQueries,
-    IProductListQueries productListQueries)
+    IProductListQueries productListQueries,
+    ICategoryFilterQueries categoryFilterQueries)
         : ApiControllerBase
 {
     [HttpPost]
@@ -101,8 +102,8 @@ public sealed class CategoriesController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetFilters(Guid categoryId, CancellationToken cancellationToken)
     {
-        Result<CategoryFiltersResponse, Error> result = await categoryQueries.GetFiltersAsync(
-            categoryId, ParseAttributeFilters(Request.Query), cancellationToken);
+        Result<CategoryFiltersResponse, Error> result = await categoryFilterQueries.GetAsync(
+            categoryId, ParseFilters(Request.Query), cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
@@ -122,28 +123,30 @@ public sealed class CategoriesController(
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
 
-    private static List<ProductListFilter> ParseAttributeFilters(IQueryCollection source)
+    private static List<ProductFilter> ParseFilters(IQueryCollection source)
     {
-        const string prefix = "a.";
-
-        List<ProductListFilter> filters = [];
+        List<ProductFilter> filters = [];
 
         foreach (KeyValuePair<string, StringValues> pair in source)
         {
-            if (!pair.Key.StartsWith(prefix, StringComparison.Ordinal))
+            bool isAttribute =
+                pair.Key.StartsWith(ProductFilter.AttributePrefix, StringComparison.Ordinal)
+                && pair.Key.Length > ProductFilter.AttributePrefix.Length;
+
+            bool isFixed = pair.Key is ProductFilter.ManufacturerKey or ProductFilter.CountryKey;
+
+            if (!isAttribute && !isFixed)
                 continue;
 
-            string attributeSlug = pair.Key[prefix.Length..];
-
-            string[] valueSlugs = [.. pair.Value
+            string[] valueKeys = [.. pair.Value
             .SelectMany(raw => (raw ?? string.Empty).Split(
                 ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .Distinct(StringComparer.Ordinal)];
 
-            if (attributeSlug.Length == 0 || valueSlugs.Length == 0)
+            if (valueKeys.Length == 0)
                 continue;
 
-            filters.Add(new ProductListFilter(attributeSlug, valueSlugs));
+            filters.Add(new ProductFilter(pair.Key, valueKeys));
         }
 
         return filters;
@@ -159,7 +162,6 @@ public sealed class CategoriesController(
             ? Math.Clamp(parsedSize, 1, ProductListQuery.MaxPageSize)
             : ProductListQuery.DefaultPageSize;
 
-        return new ProductListQuery(
-            categoryId, ParseAttributeFilters(source), source["sort"], page, pageSize);
+        return new ProductListQuery(categoryId, ParseFilters(source), source["sort"], page, pageSize);
     }
 }

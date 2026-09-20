@@ -3,13 +3,16 @@ using Shop.Domain.Errors;
 
 namespace Shop.Application.Products;
 
-public sealed record ProductListFilter(
-    string AttributeSlug,
-    IReadOnlyList<string> ValueSlugs);
+public sealed record ProductFilter(string GroupKey, IReadOnlyList<string> ValueKeys)
+{
+    public const string AttributePrefix = "a.";
+    public const string ManufacturerKey = "manufacturer";
+    public const string CountryKey = "country";
+}
 
 public sealed record ProductListQuery(
     Guid CategoryId,
-    IReadOnlyList<ProductListFilter> Filters,
+    IReadOnlyList<ProductFilter> Filters,
     string? Sort,
     int Page,
     int PageSize)

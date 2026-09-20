@@ -1,6 +1,4 @@
 ﻿using CSharpFunctionalExtensions;
-using Shop.Application.Products;
-using Shop.Domain.Errors;
 
 namespace Shop.Application.Categories;
 
@@ -17,21 +15,6 @@ public sealed record CategoryAttributesResponse(
     Guid? InheritedFromCategoryId,
     IReadOnlyList<CategoryAttributeItemResponse> Attributes);
 
-public sealed record CategoryFiltersResponse(
-    IReadOnlyList<CategoryFilterGroupResponse> Groups);
-
-public sealed record CategoryFilterGroupResponse(
-    Guid AttributeId,
-    string Name,
-    string Slug,
-    IReadOnlyList<CategoryFilterValueResponse> Values);
-
-public sealed record CategoryFilterValueResponse(
-    Guid ValueId,
-    string Name,
-    string Slug,
-    int ProductCount);
-
 public interface ICategoryQueries
 {
     Task<IReadOnlyList<CategoryTreeItemResponse>> GetTreeAsync(
@@ -39,9 +22,4 @@ public interface ICategoryQueries
 
     Task<Maybe<CategoryAttributesResponse>> GetAttributesAsync(
         Guid categoryId, CancellationToken cancellationToken);
-
-    Task<Result<CategoryFiltersResponse, Error>> GetFiltersAsync(
-        Guid categoryId,
-        IReadOnlyList<ProductListFilter> filters,
-        CancellationToken cancellationToken);
 }

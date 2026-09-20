@@ -1,12 +1,12 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
+using Shop.Application.Abstractions;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
-using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
 
-internal sealed class ProductListQueries(AppDbContext context) : IProductListQueries
+internal sealed class ProductListQueries(AppDbContext context, ISlugGenerator slugGenerator) : IProductListQueries
 {
     private const string SortNewest = "newest";
     private const string SortPriceAsc = "price_asc";
@@ -31,29 +31,21 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
 
         List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
 
-        Result<List<ResolvedAttributeFilter>, Error> resolvedFilters =
-            await AttributeFilterResolver.ResolveAsync(context, query.Filters, cancellationToken);
+        Result<List<ResolvedFilter>, Error> resolvedFilters = await ProductFilterResolver
+            .ResolveAsync(context, slugGenerator, query.Filters, cancellationToken);
 
         if (resolvedFilters.IsFailure)
             return resolvedFilters.Error;
+
+        IQueryable<Guid> matching = ProductFilterResolver
+            .MatchingProductIds(context, subtreeIds, resolvedFilters.Value);
 
         var rows = from variant in context.ProductVariants.AsNoTracking()
                    join product in context.Products on variant.ProductId equals product.Id
                    join manufacturer in context.Manufacturers
                        on product.ManufacturerId equals manufacturer.Id
-                   where subtreeIds.Contains(product.CategoryId)
+                   where matching.Contains(product.Id)
                    select new { variant, product, manufacturer };
-
-        IQueryable<ProductAttributeValue> links = context.Set<ProductAttributeValue>();
-
-        foreach (ResolvedAttributeFilter filter in resolvedFilters.Value)
-        {
-            List<Guid> valueIds = filter.ValueIds;
-
-            rows = rows.Where(row => links.Any(
-                link => link.ProductId == row.product.Id
-                     && valueIds.Contains(link.AttributeValueId)));
-        }
 
         int totalItems = await rows.CountAsync(cancellationToken);
 
