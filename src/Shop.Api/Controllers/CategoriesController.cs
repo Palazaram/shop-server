@@ -6,6 +6,7 @@ using Shop.Application.Abstractions;
 using Shop.Application.Categories;
 using Shop.Application.Categories.CreateCategory;
 using Shop.Application.Categories.RenameCategory;
+using Shop.Application.Categories.ReorderCategories;
 using Shop.Application.Categories.SetCategoryAttributes;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
@@ -19,6 +20,7 @@ namespace Shop.Api.Controllers;
 public sealed class CategoriesController(
     ICommandHandler<CreateCategoryCommand, CreateCategoryResponse> createCategoryHandler,
     ICommandHandler<RenameCategoryCommand> renameCategoryHandler,
+    ICommandHandler<ReorderCategoriesCommand> reorderCategoriesHandler,
     ICommandHandler<SetCategoryAttributesCommand> setAttributesHandler,
     ICategoryQueries categoryQueries,
     IProductListQueries productListQueries,
@@ -54,6 +56,19 @@ public sealed class CategoriesController(
 
         UnitResult<Error> result =
             await renameCategoryHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPut("order")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Reorder(
+        ReorderCategoriesCommand command,
+        CancellationToken cancellationToken)
+    {
+        UnitResult<Error> result =
+            await reorderCategoriesHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }

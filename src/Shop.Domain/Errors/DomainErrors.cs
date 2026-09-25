@@ -171,6 +171,24 @@ public static class DomainErrors
 
         public static Error AttributeIdIsInvalid()
             => Error.Validation("category.attributes.invalid_id", "Attribute id must not be empty");
+
+        public static Error OrderIsRequired()
+            => Error.Validation("category.order.required", "Category ids are required");
+
+        public static Error OrderIdIsInvalid()
+            => Error.Validation("category.order.invalid_id", "Category id must not be empty");
+
+        public static Error DuplicateCategoryInOrder()
+            => Error.Validation("category.order.duplicate",
+                "The same category is listed more than once");
+
+        public static Error CategoryNotOnLevel(Guid categoryId)
+            => Error.Validation("category.order.not_on_level",
+                $"Category {categoryId} does not belong to this level");
+
+        public static Error OrderIsIncomplete(int expectedCount)
+            => Error.Validation("category.order.incomplete",
+                $"All {expectedCount} categories of this level must be listed");
     }
 
     public static class Manufacturers

@@ -55,5 +55,20 @@ internal sealed class CategoryRepository(AppDbContext context) : ICategoryReposi
             .ToListAsync(cancellationToken);
     }
 
+    // Без AsNoTracking: перестановка меняет эти же объекты, и сохранять их будет UnitOfWork.
+    public async Task<IReadOnlyList<Category>> GetSiblingsAsync(Guid? parentId, CancellationToken cancellationToken = default)
+        => await context.Categories
+            .Where(c => c.ParentId == parentId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<int> GetNextDisplayOrderAsync(Guid? parentId, CancellationToken cancellationToken = default)
+    {
+        int? maxDisplayOrder = await context.Categories
+            .Where(c => c.ParentId == parentId)
+            .MaxAsync(c => (int?)c.DisplayOrder, cancellationToken);
+
+        return maxDisplayOrder.HasValue ? maxDisplayOrder.Value + 1 : 0;
+    }
+
     public void Add(Category category) => context.Categories.Add(category);
 }

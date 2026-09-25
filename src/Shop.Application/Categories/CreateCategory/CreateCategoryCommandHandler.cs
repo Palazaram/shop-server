@@ -29,8 +29,11 @@ internal sealed class CreateCategoryCommandHandler(
                 ? slugResult.Error
                 : DomainErrors.Categories.SlugCannotBeGenerated();
 
+        int displayOrder =
+            await categoryRepository.GetNextDisplayOrderAsync(command.ParentId, cancellationToken);
+
         Result<Category, Error> categoryResult =
-            Category.Create(command.Name, slugResult.Value, command.ParentId);
+            Category.Create(command.Name, slugResult.Value, command.ParentId, displayOrder);
         if (categoryResult.IsFailure)
             return categoryResult.Error;
 

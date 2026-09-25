@@ -11,11 +11,12 @@ public sealed class Category : AggregateRoot<Guid>
     private readonly List<CategoryAttribute> _attributes = [];
     public const int MaxNameLength = 100;
 
-    private Category(Guid id, string name, Slug slug, Guid? parentId) : base(id)
+    private Category(Guid id, string name, Slug slug, Guid? parentId, int displayOrder) : base(id)
     {
         Name = name;
         Slug = slug;
         ParentId = parentId;
+        DisplayOrder = displayOrder;
     }
 
     private Category() { }
@@ -23,11 +24,13 @@ public sealed class Category : AggregateRoot<Guid>
     public string Name { get; private set; } = null!;
     public Slug Slug { get; private set; } = null!;
     public Guid? ParentId { get; private set; }
+    public int DisplayOrder { get; private set; }
     public IReadOnlyList<CategoryAttribute> Attributes => _attributes;
 
-    public static Result<Category, Error> Create(string? name, Slug slug, Guid? parentId)
+    public static Result<Category, Error> Create(string? name, Slug slug, Guid? parentId, int displayOrder)
     {
         ArgumentNullException.ThrowIfNull(slug);
+        ArgumentOutOfRangeException.ThrowIfNegative(displayOrder);
 
         if (parentId == Guid.Empty)
             throw new ArgumentException("Parent id must not be empty.", nameof(parentId));
@@ -36,7 +39,7 @@ public sealed class Category : AggregateRoot<Guid>
         if (normalizedName.IsFailure)
             return normalizedName.Error;
 
-        return new Category(Guid.CreateVersion7(), normalizedName.Value, slug, parentId);
+        return new Category(Guid.CreateVersion7(), normalizedName.Value, slug, parentId, displayOrder);
     }
 
     public UnitResult<Error> Rename(string? name)
@@ -47,6 +50,14 @@ public sealed class Category : AggregateRoot<Guid>
 
         Name = normalizedName.Value;
         return default;
+    }
+
+    /// <summary>Позицию назначает хендлер: порядок — правило уровня, а не одной категории.</summary>
+    public void SetDisplayOrder(int displayOrder)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(displayOrder);
+
+        DisplayOrder = displayOrder;
     }
 
     public UnitResult<Error> SetAttributes(IReadOnlyList<Guid> attributeIds)

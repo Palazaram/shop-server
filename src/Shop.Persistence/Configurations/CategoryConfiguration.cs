@@ -23,6 +23,9 @@ internal sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasMaxLength(Slug.MaxLength)
             .IsRequired();
 
+        builder.Property(c => c.DisplayOrder)
+            .IsRequired();
+
         builder.HasOne<Category>()
             .WithMany()
             .HasForeignKey(c => c.ParentId)

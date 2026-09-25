@@ -17,5 +17,9 @@ public interface ICategoryRepository
 
     Task<IReadOnlyList<Guid>> GetEffectiveAttributeIdsAsync(Guid categoryId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Category>> GetSiblingsAsync(Guid? parentId, CancellationToken cancellationToken = default);
+
+    Task<int> GetNextDisplayOrderAsync(Guid? parentId, CancellationToken cancellationToken = default);
+
     void Add(Category category);
 }

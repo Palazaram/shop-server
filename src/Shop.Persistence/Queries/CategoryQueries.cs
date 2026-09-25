@@ -11,7 +11,7 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
     {
         var rows = await context.Categories
             .AsNoTracking()
-            .Select(c => new { c.Id, c.Name, c.Slug, c.ParentId })
+            .Select(c => new { c.Id, c.Name, c.Slug, c.ParentId, c.DisplayOrder })
             .ToListAsync(cancellationToken);
 
         Dictionary<Guid, List<CategoryTreeItemResponse>> subcategories = rows
@@ -20,14 +20,16 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .OrderBy(row => row.Name, TextComparers.Ukrainian)
+                    .OrderBy(row => row.DisplayOrder)
+                    .ThenBy(row => row.Name, TextComparers.Ukrainian)
                     .Select(row => new CategoryTreeItemResponse(
                         row.Id, row.Name, row.Slug.Value, []))
                     .ToList());
 
         return rows
             .Where(row => row.ParentId is null)
-            .OrderBy(row => row.Name, TextComparers.Ukrainian)
+            .OrderBy(row => row.DisplayOrder)
+            .ThenBy(row => row.Name, TextComparers.Ukrainian)
             .Select(row => new CategoryTreeItemResponse(
                 row.Id,
                 row.Name,
