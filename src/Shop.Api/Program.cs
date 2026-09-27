@@ -1,15 +1,24 @@
 using Scalar.AspNetCore;
+using Serilog;
 using Shop.Api.Authentication;
 using Shop.Api.BackgroundJobs;
 using Shop.Api.ExceptionHandling;
 using Shop.Api.Extensions;
 using Shop.Api.Filters;
+using Shop.Api.Middleware;
 using Shop.Application;
 using Shop.Infrastructure;
 using Shop.Persistence;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+
+builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfiguration
+    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 var connectionString = builder.Configuration.GetConnectionString("Database")
     ?? throw new InvalidOperationException("Connection string 'Database' is not configured.");
@@ -38,7 +47,11 @@ builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 var app = builder.Build();
 
+app.UseMiddleware<RequestTraceMiddleware>();
+
 app.UseExceptionHandler();
+
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

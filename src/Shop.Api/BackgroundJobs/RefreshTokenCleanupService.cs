@@ -43,8 +43,9 @@ public sealed class RefreshTokenCleanupService(
 
             var removed = await refreshTokenRepository.DeleteExpiredAsync(threshold, cancellationToken);
 
-            if (removed > 0)
-                logger.LogInformation("Removed {Count} expired refresh tokens.", removed);
+            logger.LogInformation(
+                "Refresh token cleanup removed {Count} expired tokens older than {Threshold:O}.",
+                removed, threshold);
         }
         catch (OperationCanceledException)
         {

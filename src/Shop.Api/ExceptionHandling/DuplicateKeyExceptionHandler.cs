@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Shop.Api.Extensions;
 using Shop.Persistence.Exceptions;
 
 namespace Shop.Api.ExceptionHandling;
@@ -26,6 +27,8 @@ internal sealed class DuplicateKeyExceptionHandler(ILogger<DuplicateKeyException
         {
             new { field = (string?)null, code = "resource.duplicate", message = problemDetails.Detail }
         };
+
+        problemDetails.WithTraceId(httpContext);
 
         httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);

@@ -29,7 +29,7 @@ public abstract class ApiControllerBase : ControllerBase
 
     protected IActionResult ToActionResult(Error error)
     {
-        var problemDetails = error.ToProblemDetails();
+        var problemDetails = error.ToProblemDetails().WithTraceId(HttpContext);
 
         return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Shop.Api.Extensions;
 
 namespace Shop.Api.ExceptionHandling;
 
@@ -36,7 +37,7 @@ internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log
             new { field = (string?)null, code = "internal.server_error", message = problemDetails.Detail }
         };
 
-        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problemDetails.WithTraceId(httpContext);
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);

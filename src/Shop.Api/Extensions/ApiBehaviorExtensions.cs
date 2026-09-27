@@ -37,6 +37,8 @@ public static class ApiBehaviorExtensions
                     })
                     .ToArray();
 
+                problemDetails.WithTraceId(context.HttpContext);
+
                 return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
             };
         });

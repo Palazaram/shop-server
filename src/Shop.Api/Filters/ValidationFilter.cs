@@ -33,7 +33,7 @@ public sealed class ValidationFilter : IAsyncActionFilter
             if (validationResult.IsValid)
                 continue;
 
-            var problemDetails = validationResult.ToProblemDetails();
+            var problemDetails = validationResult.ToProblemDetails().WithTraceId(context.HttpContext);
 
             context.Result = new ObjectResult(problemDetails)
             {
