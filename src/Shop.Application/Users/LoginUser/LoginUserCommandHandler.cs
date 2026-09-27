@@ -8,7 +8,7 @@ using Shop.Domain.Users;
 
 namespace Shop.Application.Users.LoginUser;
 
-public sealed class LoginUserCommandHandler
+internal sealed class LoginUserCommandHandler
     (IUserRepository userRepository,
     IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,

@@ -13,6 +13,12 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateOnBuild = true;
+    options.ValidateScopes = true;
+});
+
 builder.Logging.ClearProviders();
 
 builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfiguration
@@ -29,7 +35,8 @@ builder.Services
     .AddPersistence(connectionString);
 
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
-    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+    .AddControllersAsServices();
 
 builder.Services.AddModelBindingErrorFormat();
 
@@ -46,6 +53,8 @@ builder.Services.AddSingleton<AuthCookieService>();
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 var app = builder.Build();
+
+app.EnsureBodyParametersHaveValidators();
 
 app.UseMiddleware<RequestTraceMiddleware>();
 

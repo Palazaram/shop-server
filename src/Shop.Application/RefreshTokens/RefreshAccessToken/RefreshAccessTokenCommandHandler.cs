@@ -8,7 +8,7 @@ using Shop.Domain.Users;
 
 namespace Shop.Application.RefreshTokens.RefreshAccessToken;
 
-public sealed class RefreshAccessTokenCommandHandler(
+internal sealed class RefreshAccessTokenCommandHandler(
     IRefreshTokenRepository refreshTokenRepository,
     IUserRepository userRepository,
     IRefreshTokenGenerator refreshTokenGenerator,

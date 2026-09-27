@@ -7,7 +7,7 @@ using Shop.Domain.Users;
 
 namespace Shop.Application.Users.RegisterUser;
 
-public sealed class RegisterUserCommandHandler(
+internal sealed class RegisterUserCommandHandler(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,

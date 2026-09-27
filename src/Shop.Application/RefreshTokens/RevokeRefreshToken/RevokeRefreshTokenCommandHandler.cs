@@ -6,7 +6,7 @@ using Shop.Domain.RefreshTokens;
 
 namespace Shop.Application.RefreshTokens.RevokeRefreshToken;
 
-public sealed class RevokeRefreshTokenCommandHandler(
+internal sealed class RevokeRefreshTokenCommandHandler(
     IRefreshTokenRepository refreshTokenRepository,
     IRefreshTokenGenerator refreshTokenGenerator,
     IUnitOfWork unitOfWork,

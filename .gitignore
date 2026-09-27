@@ -364,4 +364,4 @@ FodyWeavers.xsd
 
 .env
 Claude outputs/
-logs/
+Logs/
