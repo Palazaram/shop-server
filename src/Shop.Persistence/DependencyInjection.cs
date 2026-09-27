@@ -48,6 +48,9 @@ public static class DependencyInjection
         services.AddScoped<ICategoryFilterQueries, CategoryFilterQueries>();
         services.AddScoped<ICountryQueries, CountryQueries>();
 
+        services.AddHealthChecks()
+            .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
+
         return services;
     }
 }

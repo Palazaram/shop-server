@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using Shop.Api.Authentication;
 using Shop.Api.BackgroundJobs;
 using Shop.Api.ExceptionHandling;
@@ -44,6 +46,7 @@ builder.Services.AddExceptionHandler<DuplicateKeyExceptionHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+builder.Services.AddFrontendCors(builder.Configuration);
 builder.Services.AddOpenApiDocumentation();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
@@ -60,7 +63,12 @@ app.UseMiddleware<RequestTraceMiddleware>();
 
 app.UseExceptionHandler();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options => options.GetLevel = (context, _, exception) =>
+    exception is not null || context.Response.StatusCode >= 500
+        ? LogEventLevel.Error
+        : context.Request.Path.StartsWithSegments("/health")
+            ? LogEventLevel.Verbose
+            : LogEventLevel.Information);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -69,11 +77,19 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+app.UseFrontendCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+    .ExcludeFromDescription();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).ExcludeFromDescription();
 
 app.Run();
