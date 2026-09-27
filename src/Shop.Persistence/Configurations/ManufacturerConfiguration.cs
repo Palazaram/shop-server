@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shop.Domain.Common;
+using Shop.Domain.Countries;
 using Shop.Domain.Manufacturers;
 
 namespace Shop.Persistence.Configurations;
@@ -18,9 +19,10 @@ internal sealed class ManufacturerConfiguration : IEntityTypeConfiguration<Manuf
             .HasMaxLength(Manufacturer.MaxNameLength)
             .IsRequired();
 
-        builder.Property(m => m.Country)
-            .HasMaxLength(Manufacturer.MaxCountryLength)
-            .IsRequired();
+        builder.HasOne<Country>()
+            .WithMany()
+            .HasForeignKey(m => m.CountryId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(m => m.Slug)
             .HasConversion(slug => slug.Value, value => Slug.Create(value).Value)

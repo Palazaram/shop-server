@@ -23,11 +23,11 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
                 .WithError(DomainErrors.Products.DescriptionTooLong(Product.MaxDescriptionLength));
 
         RuleFor(x => x.CategoryId)
-            .NotEmpty()
+            .NotEmptyId()
                 .WithError(DomainErrors.Products.CategoryIdIsInvalid());
 
         RuleFor(x => x.ManufacturerId)
-            .NotEmpty()
+            .NotEmptyId()
                 .WithError(DomainErrors.Products.ManufacturerIdIsInvalid());
     }
 }

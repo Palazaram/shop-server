@@ -32,6 +32,13 @@ public static class ValidationExtensions
         });
     }
 
+    /// <summary>
+    /// NotEmpty() на Guid? сравнивает значение с default(Guid?), то есть с null,
+    /// и пропускает Guid.Empty. Это правило проверяет оба случая.
+    /// </summary>
+    public static IRuleBuilderOptions<T, Guid?> NotEmptyId<T>(this IRuleBuilder<T, Guid?> rule)
+        => rule.Must(id => id.HasValue && id.Value != Guid.Empty);
+
     public static IRuleBuilderOptions<T, string?> ValidPassword<T>(this IRuleBuilder<T, string?> rule)
     {
         const int minLength = 8;

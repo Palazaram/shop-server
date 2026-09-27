@@ -20,11 +20,9 @@ public sealed class CreateManufacturerCommandValidator
             .MaximumLength(Manufacturer.MaxNameLength)
                 .WithError(DomainErrors.Manufacturers.NameTooLong(Manufacturer.MaxNameLength));
 
-        RuleFor(x => x.Country)
-            .NotEmpty()
-                .WithError(DomainErrors.Manufacturers.CountryIsRequired())
-            .MaximumLength(Manufacturer.MaxCountryLength)
-                .WithError(DomainErrors.Manufacturers.CountryTooLong(Manufacturer.MaxCountryLength));
+        RuleFor(x => x.CountryId)
+            .NotEmptyId()
+                .WithError(DomainErrors.Manufacturers.CountryIdIsInvalid());
 
         RuleFor(x => x.Slug)
             .MustBeValueObject(Slug.Create)

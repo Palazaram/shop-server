@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
-using Shop.Application.Abstractions;
 using Shop.Application.Categories;
 using Shop.Application.Products;
 using Shop.Domain.Categories;
@@ -10,8 +9,7 @@ using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
 
-internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator slugGenerator)
-    : ICategoryFilterQueries
+internal sealed class CategoryFilterQueries(AppDbContext context) : ICategoryFilterQueries
 {
     private const string ManufacturerGroupName = "Виробник";
     private const string CountryGroupName = "Країна походження";
@@ -36,7 +34,7 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
         List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
 
         Result<List<ResolvedFilter>, Error> resolved = await ProductFilterResolver
-            .ResolveAsync(context, slugGenerator, filters.Filters, cancellationToken);
+            .ResolveAsync(context, filters.Filters, cancellationToken);
 
         if (resolved.IsFailure)
             return resolved.Error;
@@ -187,7 +185,10 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
         // --- Производитель и страна
 
         List<ManufacturerRef> manufacturers = await ProductFilterResolver
-            .LoadManufacturersAsync(context, slugGenerator, cancellationToken);
+            .LoadManufacturersAsync(context, cancellationToken);
+
+        List<CountryRef> countries = await ProductFilterResolver
+            .LoadCountriesAsync(context, cancellationToken);
 
         HashSet<string> chosenManufacturers =
             selected.GetValueOrDefault(ProductFilter.ManufacturerKey, []);
@@ -221,16 +222,14 @@ internal sealed class CategoryFilterQueries(AppDbContext context, ISlugGenerator
             ? baseManufacturerCounts
             : await CountByManufacturerAsync(Matching(ProductFilter.CountryKey));
 
-        // Страна не имеет собственного ключа, поэтому группируем по вычисленному,
-        // а не по исходной строке: иначе сайдбар и фильтр разойдутся.
-        var visibleCountries = manufacturers
-            .Where(m => m.CountryKey.Length > 0)
-            .GroupBy(m => m.CountryKey, StringComparer.Ordinal)
-            .Select(g => new
+        var visibleCountries = countries
+            .Select(country => new
             {
-                Key = g.Key,
-                Name = g.Select(m => m.Country).OrderBy(c => c, TextComparers.Ukrainian).First(),
-                Count = g.Sum(m => countryCounts.GetValueOrDefault(m.Id))
+                Key = country.Slug,
+                country.Name,
+                Count = manufacturers
+                    .Where(m => m.CountryId == country.Id)
+                    .Sum(m => countryCounts.GetValueOrDefault(m.Id))
             })
             .Where(entry => entry.Count > 0 || chosenCountries.Contains(entry.Key))
             .OrderBy(entry => entry.Name, TextComparers.Ukrainian)

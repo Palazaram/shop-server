@@ -5,18 +5,25 @@ namespace Shop.Persistence.Queries;
 
 internal sealed class ManufacturerQueries(AppDbContext context) : IManufacturerQueries
 {
-    public async Task<IReadOnlyList<ManufacturerResponse>> GetAllAsync(
-        CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ManufacturerResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var rows = await context.Manufacturers
-            .AsNoTracking()
-            .Select(m => new { m.Id, m.Name, m.Slug, m.Country })
+        var rows = await (
+            from manufacturer in context.Manufacturers.AsNoTracking()
+            join country in context.Countries on manufacturer.CountryId equals country.Id
+            select new
+            {
+                manufacturer.Id,
+                manufacturer.Name,
+                manufacturer.Slug,
+                CountryId = country.Id,
+                CountryName = country.Name
+            })
             .ToListAsync(cancellationToken);
 
         return rows
             .OrderBy(row => row.Name, TextComparers.Ukrainian)
             .Select(row => new ManufacturerResponse(
-                row.Id, row.Name, row.Slug.Value, row.Country))
+                row.Id, row.Name, row.Slug.Value, row.CountryId, row.CountryName))
             .ToList();
     }
 }

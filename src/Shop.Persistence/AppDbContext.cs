@@ -3,6 +3,7 @@ using Npgsql;
 using Shop.Domain.Abstractions;
 using Shop.Domain.AttributeValues;
 using Shop.Domain.Categories;
+using Shop.Domain.Countries;
 using Shop.Domain.Manufacturers;
 using Shop.Domain.ProductAttributes;
 using Shop.Domain.Products;
@@ -28,6 +29,7 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<ProductAttribute> ProductAttributes => Set<ProductAttribute>();
     public DbSet<AttributeValue> AttributeValues => Set<AttributeValue>();
+    public DbSet<Country> Countries => Set<Country>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

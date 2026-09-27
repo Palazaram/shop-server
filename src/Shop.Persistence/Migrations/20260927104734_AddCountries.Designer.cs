@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shop.Persistence;
@@ -12,9 +13,11 @@ using Shop.Persistence;
 namespace Shop.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927104734_AddCountries")]
+    partial class AddCountries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -170,9 +173,11 @@ namespace Shop.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CountryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("country_id");
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("country");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -188,9 +193,6 @@ namespace Shop.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_manufacturers");
-
-                    b.HasIndex("CountryId")
-                        .HasDatabaseName("ix_manufacturers_country_id");
 
                     b.HasIndex("Name")
                         .IsUnique()
@@ -546,16 +548,6 @@ namespace Shop.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_category_attributes_categories_category_id");
-                });
-
-            modelBuilder.Entity("Shop.Domain.Manufacturers.Manufacturer", b =>
-                {
-                    b.HasOne("Shop.Domain.Countries.Country", null)
-                        .WithMany()
-                        .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_manufacturers_countries_country_id");
                 });
 
             modelBuilder.Entity("Shop.Domain.ProductVariants.ProductVariant", b =>

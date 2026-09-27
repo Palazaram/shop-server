@@ -2,6 +2,7 @@
 using Shop.Application.Abstractions;
 using Shop.Domain.Abstractions;
 using Shop.Domain.Common;
+using Shop.Domain.Countries;
 using Shop.Domain.Errors;
 using Shop.Domain.Manufacturers;
 
@@ -9,6 +10,7 @@ namespace Shop.Application.Manufacturers.CreateManufacturer;
 
 internal sealed class CreateManufacturerCommandHandler(
     IManufacturerRepository manufacturerRepository,
+    ICountryRepository countryRepository,
     ISlugGenerator slugGenerator,
     IUnitOfWork unitOfWork)
         : ICommandHandler<CreateManufacturerCommand, CreateManufacturerResponse>
@@ -29,10 +31,16 @@ internal sealed class CreateManufacturerCommandHandler(
                 ? slugResult.Error
                 : DomainErrors.Manufacturers.SlugCannotBeGenerated();
 
+        Guid countryId = command.CountryId!.Value;
+
+        if (!await countryRepository.ExistsAsync(countryId, cancellationToken))
+            return DomainErrors.Manufacturers.CountryNotFound();
+
         Result<Manufacturer, Error> manufacturerResult = Manufacturer.Create(
             name: command.Name,
             slug: slugResult.Value,
-            country: command.Country);
+            countryId: countryId);
+
         if (manufacturerResult.IsFailure)
             return manufacturerResult.Error;
 

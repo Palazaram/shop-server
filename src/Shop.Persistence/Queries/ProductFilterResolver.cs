@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
-using Shop.Application.Abstractions;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
 using Shop.Domain.ProductVariants;
@@ -28,31 +27,42 @@ internal sealed record ResolvedFilter(
         => new(groupKey, ResolvedFilterKind.Packagings, [], keys);
 }
 
-internal sealed record ManufacturerRef(
-    Guid Id, string Slug, string Name, string Country, string CountryKey);
+internal sealed record ManufacturerRef(Guid Id, string Slug, string Name, Guid CountryId);
+
+internal sealed record CountryRef(Guid Id, string Slug, string Name);
 
 internal static class ProductFilterResolver
 {
     public static async Task<List<ManufacturerRef>> LoadManufacturersAsync(
         AppDbContext context,
-        ISlugGenerator slugGenerator,
         CancellationToken cancellationToken)
     {
         var rows = await context.Manufacturers
             .AsNoTracking()
-            .Select(m => new { m.Id, m.Slug, m.Name, m.Country })
+            .Select(m => new { m.Id, m.Slug, m.Name, m.CountryId })
             .ToListAsync(cancellationToken);
 
         return
         [
-            .. rows.Select(m => new ManufacturerRef(
-                m.Id, m.Slug.Value, m.Name, m.Country, slugGenerator.Generate(m.Country)))
+            .. rows.Select(row => new ManufacturerRef(
+                row.Id, row.Slug.Value, row.Name, row.CountryId))
         ];
+    }
+
+    public static async Task<List<CountryRef>> LoadCountriesAsync(
+        AppDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var rows = await context.Countries
+            .AsNoTracking()
+            .Select(c => new { c.Id, c.Slug, c.Name })
+            .ToListAsync(cancellationToken);
+
+        return [.. rows.Select(row => new CountryRef(row.Id, row.Slug.Value, row.Name))];
     }
 
     public static async Task<Result<List<ResolvedFilter>, Error>> ResolveAsync(
         AppDbContext context,
-        ISlugGenerator slugGenerator,
         IReadOnlyList<ProductFilter> filters,
         CancellationToken cancellationToken)
     {
@@ -104,7 +114,13 @@ internal static class ProductFilterResolver
         }
 
         List<ManufacturerRef> manufacturers = needsManufacturers
-            ? await LoadManufacturersAsync(context, slugGenerator, cancellationToken)
+           ? await LoadManufacturersAsync(context, cancellationToken)
+           : [];
+
+        bool needsCountries = filters.Any(f => f.GroupKey == ProductFilter.CountryKey);
+
+        List<CountryRef> countries = needsCountries
+            ? await LoadCountriesAsync(context, cancellationToken)
             : [];
 
         HashSet<string> knownPackagings = [];
@@ -164,19 +180,17 @@ internal static class ProductFilterResolver
             {
                 List<Guid> ids = [];
 
-                foreach (string countryKey in filter.ValueKeys)
+                foreach (string countrySlug in filter.ValueKeys)
                 {
-                    List<Guid> matched =
-                    [
-                        .. manufacturers
-                            .Where(m => m.CountryKey.Length > 0 && m.CountryKey == countryKey)
-                            .Select(m => m.Id)
-                    ];
+                    CountryRef? country = countries.Find(c => c.Slug == countrySlug);
 
-                    if (matched.Count == 0)
-                        return DomainErrors.Products.UnknownFilterValue(filter.GroupKey, countryKey);
+                    // Существование проверяем по справочнику, а не по наличию производителей.
+                    if (country is null)
+                        return DomainErrors.Products.UnknownFilterValue(filter.GroupKey, countrySlug);
 
-                    ids.AddRange(matched);
+                    ids.AddRange(manufacturers
+                        .Where(m => m.CountryId == country.Id)
+                        .Select(m => m.Id));
                 }
 
                 resolved.Add(ResolvedFilter.ByIds(

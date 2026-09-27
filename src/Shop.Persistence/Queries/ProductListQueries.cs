@@ -1,12 +1,11 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
-using Shop.Application.Abstractions;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
 
 namespace Shop.Persistence.Queries;
 
-internal sealed class ProductListQueries(AppDbContext context, ISlugGenerator slugGenerator) : IProductListQueries
+internal sealed class ProductListQueries(AppDbContext context) : IProductListQueries
 {
     private const string SortNewest = "newest";
     private const string SortPriceAsc = "price_asc";
@@ -34,7 +33,7 @@ internal sealed class ProductListQueries(AppDbContext context, ISlugGenerator sl
         List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
 
         Result<List<ResolvedFilter>, Error> resolvedFilters = await ProductFilterResolver
-            .ResolveAsync(context, slugGenerator, query.Filters.Filters, cancellationToken);
+            .ResolveAsync(context, query.Filters.Filters, cancellationToken);
 
         if (resolvedFilters.IsFailure)
             return resolvedFilters.Error;

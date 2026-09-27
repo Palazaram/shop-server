@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Shop.Application.Categories;
+using Shop.Application.Countries;
 using Shop.Application.Manufacturers;
 using Shop.Application.ProductAttributes;
 using Shop.Application.Products;
@@ -7,6 +8,7 @@ using Shop.Application.ProductVariants;
 using Shop.Domain.Abstractions;
 using Shop.Domain.AttributeValues;
 using Shop.Domain.Categories;
+using Shop.Domain.Countries;
 using Shop.Domain.Manufacturers;
 using Shop.Domain.ProductAttributes;
 using Shop.Domain.Products;
@@ -35,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
         services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
         services.AddScoped<IAttributeValueRepository, AttributeValueRepository>();
+        services.AddScoped<ICountryRepository, CountryRepository>();
 
         services.AddScoped<IManufacturerQueries, ManufacturerQueries>();
         services.AddScoped<ICategoryQueries, CategoryQueries>();
@@ -43,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IProductQueries, ProductQueries>();
         services.AddScoped<IProductListQueries, ProductListQueries>();
         services.AddScoped<ICategoryFilterQueries, CategoryFilterQueries>();
+        services.AddScoped<ICountryQueries, CountryQueries>();
 
         return services;
     }

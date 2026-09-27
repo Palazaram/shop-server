@@ -8,13 +8,12 @@ namespace Shop.Domain.Manufacturers;
 public sealed class Manufacturer : AggregateRoot<Guid>
 {
     public const int MaxNameLength = 100;
-    public const int MaxCountryLength = 60;
 
-    private Manufacturer(Guid id, string name, Slug slug, string country) : base(id)
+    private Manufacturer(Guid id, string name, Slug slug, Guid countryId) : base(id)
     {
         Name = name;
         Slug = slug;
-        Country = country;
+        CountryId = countryId;
     }
 
     private Manufacturer()
@@ -23,25 +22,20 @@ public sealed class Manufacturer : AggregateRoot<Guid>
 
     public string Name { get; private set; } = null!;
     public Slug Slug { get; private set; } = null!;
-    public string Country { get; private set; } = null!;
+    public Guid CountryId { get; private set; }
 
-    public static Result<Manufacturer, Error> Create(string? name, Slug slug, string? country)
+    public static Result<Manufacturer, Error> Create(string? name, Slug slug, Guid countryId)
     {
         ArgumentNullException.ThrowIfNull(slug);
+
+        if (countryId == Guid.Empty)
+            throw new ArgumentException("Country id must not be empty.", nameof(countryId));
 
         Result<string, Error> normalizedName = NormalizeName(name);
         if (normalizedName.IsFailure)
             return normalizedName.Error;
 
-        Result<string, Error> normalizedCountry = NormalizeCountry(country);
-        if (normalizedCountry.IsFailure)
-            return normalizedCountry.Error;
-
-        return new Manufacturer(
-            Guid.CreateVersion7(),
-            normalizedName.Value,
-            slug,
-            normalizedCountry.Value);
+        return new Manufacturer(Guid.CreateVersion7(), normalizedName.Value, slug, countryId);
     }
 
     public UnitResult<Error> Rename(string? name)
@@ -61,14 +55,13 @@ public sealed class Manufacturer : AggregateRoot<Guid>
         Slug = slug;
     }
 
-    public UnitResult<Error> ChangeCountry(string? country)
+    /// <summary>Существование страны проверяет хендлер: это правило про связь двух агрегатов.</summary>
+    public void ChangeCountry(Guid countryId)
     {
-        Result<string, Error> normalizedCountry = NormalizeCountry(country);
-        if (normalizedCountry.IsFailure)
-            return normalizedCountry.Error;
+        if (countryId == Guid.Empty)
+            throw new ArgumentException("Country id must not be empty.", nameof(countryId));
 
-        Country = normalizedCountry.Value;
-        return UnitResult.Success<Error>();
+        CountryId = countryId;
     }
 
     private static Result<string, Error> NormalizeName(string? name)
@@ -80,19 +73,6 @@ public sealed class Manufacturer : AggregateRoot<Guid>
 
         if (normalized.Length > MaxNameLength)
             return DomainErrors.Manufacturers.NameTooLong(MaxNameLength);
-
-        return normalized;
-    }
-
-    private static Result<string, Error> NormalizeCountry(string? country)
-    {
-        if (string.IsNullOrWhiteSpace(country))
-            return DomainErrors.Manufacturers.CountryIsRequired();
-
-        string normalized = country.CollapseWhitespace();
-
-        if (normalized.Length > MaxCountryLength)
-            return DomainErrors.Manufacturers.CountryTooLong(MaxCountryLength);
 
         return normalized;
     }

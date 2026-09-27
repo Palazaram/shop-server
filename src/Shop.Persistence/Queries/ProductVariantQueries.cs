@@ -24,6 +24,7 @@ internal sealed class ProductVariantQueries(AppDbContext context) : IProductVari
             join manufacturer in context.Manufacturers
                 on product.ManufacturerId equals manufacturer.Id
             join category in context.Categories on product.CategoryId equals category.Id
+            join country in context.Countries on manufacturer.CountryId equals country.Id
             where variant.Slug == parsedSlug
             select new
             {
@@ -37,7 +38,7 @@ internal sealed class ProductVariantQueries(AppDbContext context) : IProductVari
                 ProductName = product.Name,
                 product.Description,
                 ManufacturerName = manufacturer.Name,
-                manufacturer.Country,
+                Country = country.Name,
                 CategoryName = category.Name
             }).FirstOrDefaultAsync(cancellationToken);
 

@@ -2,67 +2,67 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shop.Application.Abstractions;
-using Shop.Application.Manufacturers;
-using Shop.Application.Manufacturers.ChangeManufacturerSlug;
-using Shop.Application.Manufacturers.CreateManufacturer;
-using Shop.Application.Manufacturers.UpdateManufacturer;
+using Shop.Application.Countries;
+using Shop.Application.Countries.ChangeCountrySlug;
+using Shop.Application.Countries.CreateCountry;
+using Shop.Application.Countries.RenameCountry;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
 
 namespace Shop.Api.Controllers;
 
-[Route("api/manufacturers")]
+[Route("api/countries")]
 [Authorize(Roles = RoleNames.Admin)]
-public sealed class ManufacturersController(
-    ICommandHandler<CreateManufacturerCommand, CreateManufacturerResponse> createHandler,
-    ICommandHandler<UpdateManufacturerCommand> updateHandler,
-    ICommandHandler<ChangeManufacturerSlugCommand> changeSlugHandler,
-    IManufacturerQueries manufacturerQueries)
-    : ApiControllerBase
+public sealed class CountriesController(
+    ICommandHandler<CreateCountryCommand, CreateCountryResponse> createHandler,
+    ICommandHandler<RenameCountryCommand> renameHandler,
+    ICommandHandler<ChangeCountrySlugCommand> changeSlugHandler,
+    ICountryQueries countryQueries)
+        : ApiControllerBase
 {
     [HttpPost]
-    [ProducesResponseType<CreateManufacturerResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<CreateCountryResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
-        CreateManufacturerCommand command,
+        CreateCountryCommand command,
         CancellationToken cancellationToken)
     {
-        Result<CreateManufacturerResponse, Error> result =
+        Result<CreateCountryResponse, Error> result =
             await createHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result, response =>
             StatusCode(StatusCodes.Status201Created, response));
     }
 
-    [HttpPut("{manufacturerId:guid}")]
+    [HttpPut("{countryId:guid}/name")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Update(
-        Guid manufacturerId,
-        UpdateManufacturerRequest request,
+    public async Task<IActionResult> Rename(
+        Guid countryId,
+        RenameCountryRequest request,
         CancellationToken cancellationToken)
     {
-        UpdateManufacturerCommand command = new(manufacturerId, request.Name, request.CountryId);
+        RenameCountryCommand command = new(countryId, request.Name);
 
-        UnitResult<Error> result = await updateHandler.HandleAsync(command, cancellationToken);
+        UnitResult<Error> result = await renameHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }
 
-    [HttpPut("{manufacturerId:guid}/slug")]
+    [HttpPut("{countryId:guid}/slug")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ChangeSlug(
-        Guid manufacturerId,
-        ChangeManufacturerSlugRequest request,
+        Guid countryId,
+        ChangeCountrySlugRequest request,
         CancellationToken cancellationToken)
     {
-        ChangeManufacturerSlugCommand command = new(manufacturerId, request.Slug);
+        ChangeCountrySlugCommand command = new(countryId, request.Slug);
 
         UnitResult<Error> result = await changeSlugHandler.HandleAsync(command, cancellationToken);
 
@@ -71,12 +71,11 @@ public sealed class ManufacturersController(
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType<IReadOnlyList<ManufacturerResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<IReadOnlyList<CountryResponse>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        IReadOnlyList<ManufacturerResponse> manufacturers =
-            await manufacturerQueries.GetAllAsync(cancellationToken);
+        IReadOnlyList<CountryResponse> countries = await countryQueries.GetAllAsync(cancellationToken);
 
-        return Ok(manufacturers);
+        return Ok(countries);
     }
 }

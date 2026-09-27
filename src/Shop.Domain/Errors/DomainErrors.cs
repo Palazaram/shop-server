@@ -200,12 +200,12 @@ public static class DomainErrors
             => Error.Validation("manufacturer.name.max_length",
                 $"Manufacturer name must not exceed {maxLength} characters");
 
-        public static Error CountryIsRequired()
-            => Error.Validation("manufacturer.country.required", "Country is required");
+        public static Error CountryIdIsInvalid()
+            => Error.Validation("manufacturer.country_id.invalid",
+                "Country id must not be empty");
 
-        public static Error CountryTooLong(int maxLength)
-            => Error.Validation("manufacturer.country.max_length",
-                $"Country must not exceed {maxLength} characters");
+        public static Error CountryNotFound()
+            => Error.Validation("manufacturer.country.not_found", "Country does not exist");
 
         public static Error NotFound()
             => Error.NotFound("manufacturer.not_found", "Manufacturer not found");
@@ -221,6 +221,31 @@ public static class DomainErrors
         public static Error SlugCannotBeGenerated()
             => Error.Validation("manufacturer.slug.cannot_be_generated",
                 "Could not generate a slug from the manufacturer name, provide it explicitly");
+    }
+
+    public static class Countries
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("country.name.required", "Country name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("country.name.max_length",
+                $"Country name must not exceed {maxLength} characters");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("country.name.already_exists",
+                "A country with this name already exists");
+
+        public static Error SlugAlreadyExists()
+            => Error.Conflict("country.slug.already_exists",
+                "A country with this slug already exists");
+
+        public static Error SlugCannotBeGenerated()
+            => Error.Validation("country.slug.cannot_be_generated",
+                "Could not generate a slug from the country name, provide it explicitly");
+
+        public static Error NotFound()
+            => Error.NotFound("country.not_found", "Country not found");
     }
 
     public static class Money
