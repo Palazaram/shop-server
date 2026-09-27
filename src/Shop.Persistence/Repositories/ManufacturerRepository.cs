@@ -25,8 +25,18 @@ internal sealed class ManufacturerRepository(AppDbContext context) : IManufactur
         return query.AnyAsync(cancellationToken);
     }
 
-    public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
-        => context.Manufacturers.AnyAsync(m => m.Slug == slug, cancellationToken);
+    public Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? excludeManufacturerId,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Manufacturer> query = context.Manufacturers.Where(m => m.Slug == slug);
+
+        if (excludeManufacturerId.HasValue)
+            query = query.Where(m => m.Id != excludeManufacturerId.Value);
+
+        return query.AnyAsync(cancellationToken);
+    }
 
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
         => context.Manufacturers.AnyAsync(m => m.Id == id, cancellationToken);

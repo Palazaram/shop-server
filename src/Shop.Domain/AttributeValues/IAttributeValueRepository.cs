@@ -16,6 +16,7 @@ public interface IAttributeValueRepository
     Task<bool> ExistsBySlugAsync(
         Guid attributeId,
         Slug slug,
+        Guid? excludeValueId,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<AttributeValueRef>> GetRefsAsync(IReadOnlyCollection<Guid> valueIds, CancellationToken cancellationToken = default);

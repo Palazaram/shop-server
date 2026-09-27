@@ -52,6 +52,13 @@ public sealed class Category : AggregateRoot<Guid>
         return default;
     }
 
+    public void ChangeSlug(Slug slug)
+    {
+        ArgumentNullException.ThrowIfNull(slug);
+
+        Slug = slug;
+    }
+
     /// <summary>Позицию назначает хендлер: порядок — правило уровня, а не одной категории.</summary>
     public void SetDisplayOrder(int displayOrder)
     {

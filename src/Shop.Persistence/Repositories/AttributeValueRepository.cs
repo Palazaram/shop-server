@@ -25,10 +25,20 @@ internal sealed class AttributeValueRepository(AppDbContext context) : IAttribut
         return query.AnyAsync(cancellationToken);
     }
 
-    public Task<bool> ExistsBySlugAsync(Guid attributeId, Slug slug, CancellationToken cancellationToken = default)
-        => context.AttributeValues.AnyAsync(
-            v => v.AttributeId == attributeId && v.Slug == slug,
-            cancellationToken);
+    public Task<bool> ExistsBySlugAsync(
+        Guid attributeId,
+        Slug slug,
+        Guid? excludeValueId,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<AttributeValue> query = context.AttributeValues
+            .Where(v => v.AttributeId == attributeId && v.Slug == slug);
+
+        if (excludeValueId.HasValue)
+            query = query.Where(v => v.Id != excludeValueId.Value);
+
+        return query.AnyAsync(cancellationToken);
+    }
 
     public async Task<IReadOnlyList<AttributeValueRef>> GetRefsAsync(IReadOnlyCollection<Guid> valueIds, CancellationToken cancellationToken = default)
     {

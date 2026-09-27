@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shop.Application.Abstractions;
 using Shop.Application.ProductVariants;
+using Shop.Application.ProductVariants.ChangeProductVariantSlug;
 using Shop.Application.ProductVariants.UpdateProductVariant;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
@@ -13,6 +14,7 @@ namespace Shop.Api.Controllers;
 [Authorize(Roles = RoleNames.Admin)]
 public sealed class ProductVariantsController(
     ICommandHandler<UpdateProductVariantCommand> updateVariantHandler,
+    ICommandHandler<ChangeProductVariantSlugCommand> changeSlugHandler,
     IProductVariantQueries variantQueries)
     : ApiControllerBase
 {
@@ -50,5 +52,22 @@ public sealed class ProductVariantsController(
         return variant.HasNoValue
             ? ToActionResult(DomainErrors.ProductVariants.NotFound())
             : Ok(variant.Value);
+    }
+
+    [HttpPut("{variantId:guid}/slug")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeSlug(
+        Guid variantId,
+        ChangeProductVariantSlugRequest request,
+        CancellationToken cancellationToken)
+    {
+        ChangeProductVariantSlugCommand command = new(variantId, request.Slug);
+
+        UnitResult<Error> result = await changeSlugHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
     }
 }

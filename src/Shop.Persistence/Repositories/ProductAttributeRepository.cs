@@ -29,8 +29,18 @@ internal sealed class ProductAttributeRepository(AppDbContext context) : IProduc
         return query.AnyAsync(cancellationToken);
     }
 
-    public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
-        => context.ProductAttributes.AnyAsync(a => a.Slug == slug, cancellationToken);
+    public Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? excludeAttributeId,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<ProductAttribute> query = context.ProductAttributes.Where(a => a.Slug == slug);
+
+        if (excludeAttributeId.HasValue)
+            query = query.Where(a => a.Id != excludeAttributeId.Value);
+
+        return query.AnyAsync(cancellationToken);
+    }
 
     public async Task<bool> AllExistAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
     {

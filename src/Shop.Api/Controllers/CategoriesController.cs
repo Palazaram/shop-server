@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Shop.Application.Abstractions;
 using Shop.Application.Categories;
+using Shop.Application.Categories.ChangeCategorySlug;
 using Shop.Application.Categories.CreateCategory;
 using Shop.Application.Categories.RenameCategory;
 using Shop.Application.Categories.ReorderCategories;
@@ -22,6 +23,7 @@ public sealed class CategoriesController(
     ICommandHandler<RenameCategoryCommand> renameCategoryHandler,
     ICommandHandler<ReorderCategoriesCommand> reorderCategoriesHandler,
     ICommandHandler<SetCategoryAttributesCommand> setAttributesHandler,
+    ICommandHandler<ChangeCategorySlugCommand> changeCategorySlugHandler,
     ICategoryQueries categoryQueries,
     IProductListQueries productListQueries,
     ICategoryFilterQueries categoryFilterQueries)
@@ -48,14 +50,32 @@ public sealed class CategoriesController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Rename(
-    Guid categoryId,
-    RenameCategoryRequest request,
-    CancellationToken cancellationToken)
+        Guid categoryId,
+        RenameCategoryRequest request,
+        CancellationToken cancellationToken)
     {
         RenameCategoryCommand command = new(categoryId, request.Name);
 
         UnitResult<Error> result =
             await renameCategoryHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPut("{categoryId:guid}/slug")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeSlug(
+        Guid categoryId,
+        ChangeCategorySlugRequest request,
+        CancellationToken cancellationToken)
+    {
+        ChangeCategorySlugCommand command = new(categoryId, request.Slug);
+
+        UnitResult<Error> result =
+            await changeCategorySlugHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }

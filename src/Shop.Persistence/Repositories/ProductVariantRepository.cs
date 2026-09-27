@@ -23,8 +23,18 @@ internal sealed class ProductVariantRepository(AppDbContext context) : IProductV
         return query.AnyAsync(cancellationToken);
     }
 
-    public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
-        => context.ProductVariants.AnyAsync(v => v.Slug == slug, cancellationToken);
+    public Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? excludeVariantId,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<ProductVariant> query = context.ProductVariants.Where(v => v.Slug == slug);
+
+        if (excludeVariantId.HasValue)
+            query = query.Where(v => v.Id != excludeVariantId.Value);
+
+        return query.AnyAsync(cancellationToken);
+    }
 
     public Task<bool> ExistsByPackagingAsync(Guid productId, Packaging packaging, CancellationToken cancellationToken = default)
         => context.ProductVariants.AnyAsync(

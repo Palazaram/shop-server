@@ -49,7 +49,7 @@ internal sealed class CreateAttributeValueCommandHandler(
             return DomainErrors.AttributeValues.NameAlreadyExists();
 
         if (await valueRepository.ExistsBySlugAsync(
-                value.AttributeId, value.Slug, cancellationToken))
+                value.AttributeId, value.Slug, null, cancellationToken))
             return slugProvided
                 ? DomainErrors.AttributeValues.SlugAlreadyExists()
                 : DomainErrors.AttributeValues.GeneratedSlugAlreadyExists();

@@ -54,6 +54,13 @@ public sealed class Manufacturer : AggregateRoot<Guid>
         return UnitResult.Success<Error>();
     }
 
+    public void ChangeSlug(Slug slug)
+    {
+        ArgumentNullException.ThrowIfNull(slug);
+
+        Slug = slug;
+    }
+
     public UnitResult<Error> ChangeCountry(string? country)
     {
         Result<string, Error> normalizedCountry = NormalizeCountry(country);

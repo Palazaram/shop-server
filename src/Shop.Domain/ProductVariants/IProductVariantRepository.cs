@@ -12,7 +12,10 @@ public interface IProductVariantRepository
         Guid? excludeVariantId,
         CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default);
+    Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? excludeVariantId,
+        CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByPackagingAsync(
         Guid productId,

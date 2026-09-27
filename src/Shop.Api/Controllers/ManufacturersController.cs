@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shop.Application.Abstractions;
 using Shop.Application.Manufacturers;
+using Shop.Application.Manufacturers.ChangeManufacturerSlug;
 using Shop.Application.Manufacturers.CreateManufacturer;
 using Shop.Application.Manufacturers.UpdateManufacturer;
 using Shop.Domain.Errors;
@@ -15,6 +16,7 @@ namespace Shop.Api.Controllers;
 public sealed class ManufacturersController(
     ICommandHandler<CreateManufacturerCommand, CreateManufacturerResponse> createHandler,
     ICommandHandler<UpdateManufacturerCommand> updateHandler,
+    ICommandHandler<ChangeManufacturerSlugCommand> changeSlugHandler,
     IManufacturerQueries manufacturerQueries)
     : ApiControllerBase
 {
@@ -46,6 +48,23 @@ public sealed class ManufacturersController(
         UpdateManufacturerCommand command = new(manufacturerId, request.Name, request.Country);
 
         UnitResult<Error> result = await updateHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPut("{manufacturerId:guid}/slug")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeSlug(
+        Guid manufacturerId,
+        ChangeManufacturerSlugRequest request,
+        CancellationToken cancellationToken)
+    {
+        ChangeManufacturerSlugCommand command = new(manufacturerId, request.Slug);
+
+        UnitResult<Error> result = await changeSlugHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }

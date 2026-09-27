@@ -43,6 +43,13 @@ public sealed class ProductAttribute : AggregateRoot<Guid>
         return UnitResult.Success<Error>();
     }
 
+    public void ChangeSlug(Slug slug)
+    {
+        ArgumentNullException.ThrowIfNull(slug);
+
+        Slug = slug;
+    }
+
     private static Result<string, Error> NormalizeName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))

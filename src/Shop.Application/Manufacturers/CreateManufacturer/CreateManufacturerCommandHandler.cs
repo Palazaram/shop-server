@@ -42,7 +42,7 @@ internal sealed class CreateManufacturerCommandHandler(
                 manufacturer.Name, null, cancellationToken))
             return DomainErrors.Manufacturers.NameAlreadyExists();
 
-        if (await manufacturerRepository.ExistsBySlugAsync(manufacturer.Slug, cancellationToken))
+        if (await manufacturerRepository.ExistsBySlugAsync(manufacturer.Slug, null, cancellationToken))
             return DomainErrors.Manufacturers.SlugAlreadyExists();
 
         manufacturerRepository.Add(manufacturer);

@@ -14,7 +14,10 @@ public interface IProductAttributeRepository
         Guid? excludeAttributeId,
         CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default);
+    Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? excludeAttributeId,
+        CancellationToken cancellationToken = default);
 
     Task<bool> AllExistAsync(IReadOnlyCollection<Guid> ids,CancellationToken cancellationToken = default);
 

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shop.Application.Abstractions;
+using Shop.Application.AttributeValues.ChangeAttributeValueSlug;
 using Shop.Application.AttributeValues.RenameAttributeValue;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
@@ -11,7 +12,8 @@ namespace Shop.Api.Controllers;
 [Route("api/attribute-values")]
 [Authorize(Roles = RoleNames.Admin)]
 public sealed class AttributeValuesController(
-    ICommandHandler<RenameAttributeValueCommand> renameHandler)
+    ICommandHandler<RenameAttributeValueCommand> renameHandler,
+    ICommandHandler<ChangeAttributeValueSlugCommand> changeSlugHandler)
     : ApiControllerBase
 {
     [HttpPut("{valueId:guid}/name")]
@@ -27,6 +29,23 @@ public sealed class AttributeValuesController(
         RenameAttributeValueCommand command = new(valueId, request.Name);
 
         UnitResult<Error> result = await renameHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPut("{valueId:guid}/slug")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeSlug(
+        Guid valueId,
+        ChangeAttributeValueSlugRequest request,
+        CancellationToken cancellationToken)
+    {
+        ChangeAttributeValueSlugCommand command = new(valueId, request.Slug);
+
+        UnitResult<Error> result = await changeSlugHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }

@@ -56,7 +56,7 @@ internal sealed class CreateCategoryCommandHandler(
             return DomainErrors.Categories.NameAlreadyExists();
 
         if (await categoryRepository.ExistsBySlugAsync(
-                category.Slug, category.ParentId, cancellationToken))
+                category.Slug, category.ParentId, null, cancellationToken))
             return DomainErrors.Categories.SlugAlreadyExists();
 
         categoryRepository.Add(category);

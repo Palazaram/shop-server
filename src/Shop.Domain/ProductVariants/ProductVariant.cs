@@ -79,6 +79,13 @@ public sealed class ProductVariant : AggregateRoot<Guid>
         return default;
     }
 
+    public void ChangeSlug(Slug slug)
+    {
+        ArgumentNullException.ThrowIfNull(slug);
+
+        Slug = slug;
+    }
+
     public void ChangePrice(Money price)
     {
         ArgumentNullException.ThrowIfNull(price);

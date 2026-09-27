@@ -40,7 +40,7 @@ internal sealed class CreateProductAttributeCommandHandler(
         if (await attributeRepository.ExistsByNameAsync(attribute.Name, null, cancellationToken))
             return DomainErrors.ProductAttributes.NameAlreadyExists();
 
-        if (await attributeRepository.ExistsBySlugAsync(attribute.Slug, cancellationToken))
+        if (await attributeRepository.ExistsBySlugAsync(attribute.Slug, null, cancellationToken))
             return slugProvided
                 ? DomainErrors.ProductAttributes.SlugAlreadyExists()
                 : DomainErrors.ProductAttributes.GeneratedSlugAlreadyExists();

@@ -72,7 +72,7 @@ internal sealed class CreateProductVariantCommandHandler(
                 variant.ProductId, variant.Packaging, cancellationToken))
             return DomainErrors.ProductVariants.PackagingAlreadyExists();
 
-        if (await variantRepository.ExistsBySlugAsync(variant.Slug, cancellationToken))
+        if (await variantRepository.ExistsBySlugAsync(variant.Slug, null, cancellationToken))
             return slugProvided
                 ? DomainErrors.ProductVariants.SlugAlreadyExists()
                 : DomainErrors.ProductVariants.GeneratedSlugAlreadyExists();

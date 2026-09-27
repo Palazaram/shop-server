@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shop.Application.Abstractions;
 using Shop.Application.AttributeValues.CreateAttributeValue;
 using Shop.Application.ProductAttributes;
+using Shop.Application.ProductAttributes.ChangeProductAttributeSlug;
 using Shop.Application.ProductAttributes.CreateProductAttribute;
 using Shop.Application.ProductAttributes.RenameProductAttribute;
 using Shop.Domain.Errors;
@@ -17,6 +18,7 @@ public sealed class ProductAttributesController(
     ICommandHandler<CreateProductAttributeCommand, CreateProductAttributeResponse> createHandler,
     ICommandHandler<RenameProductAttributeCommand> renameHandler,
     ICommandHandler<CreateAttributeValueCommand, CreateAttributeValueResponse> createValueHandler,
+    ICommandHandler<ChangeProductAttributeSlugCommand> changeSlugHandler,
     IProductAttributeQueries attributeQueries)
     : ApiControllerBase
 {
@@ -48,6 +50,23 @@ public sealed class ProductAttributesController(
         RenameProductAttributeCommand command = new(attributeId, request.Name);
 
         UnitResult<Error> result = await renameHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPut("{attributeId:guid}/slug")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeSlug(
+        Guid attributeId,
+        ChangeProductAttributeSlugRequest request,
+        CancellationToken cancellationToken)
+    {
+        ChangeProductAttributeSlugCommand command = new(attributeId, request.Slug);
+
+        UnitResult<Error> result = await changeSlugHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }

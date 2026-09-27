@@ -9,7 +9,11 @@ public interface ICategoryRepository
 
     Task<bool> ExistsByNameAsync(string name, Guid? parentId, Guid? excludeCategoryId, CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsBySlugAsync(Slug slug, Guid? parentId, CancellationToken cancellationToken = default);
+    Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? parentId,
+        Guid? excludeCategoryId,
+        CancellationToken cancellationToken = default);
 
     Task<bool> HasChildrenAsync(Guid categoryId, CancellationToken cancellationToken = default);
 

@@ -12,7 +12,10 @@ public interface IManufacturerRepository
         Guid? excludeManufacturerId,
         CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default);
+    Task<bool> ExistsBySlugAsync(
+        Slug slug,
+        Guid? excludeManufacturerId,
+        CancellationToken cancellationToken = default);
 
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
 
