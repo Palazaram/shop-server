@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
 using Shop.Api.Authentication;
+using Shop.Api.OpenApi;
 
 namespace Shop.Api.Extensions;
 
@@ -63,6 +64,8 @@ public static class OpenApiExtensions
 
                 return Task.CompletedTask;
             });
+
+            options.AddSchemaTransformer<RequiredFromValidatorSchemaTransformer>();
         });
 
         return services;
