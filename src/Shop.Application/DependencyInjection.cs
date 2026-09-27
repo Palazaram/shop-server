@@ -30,25 +30,20 @@ public static class DependencyInjection
 
     private static void AddHandlers(IServiceCollection services, Assembly assembly)
     {
-        var handlerInterfaces = new[]
-        {
-            typeof(ICommandHandler<,>),
-            typeof(ICommandHandler<>),
-            //typeof(IQueryHandler<,>)
-        };
+        services.Scan(scan => scan
+            .FromAssemblies(assembly)
+            .AddClasses(classes => classes
+                .AssignableTo(typeof(ICommandHandler<>))
+                .Where(type => !type.IsGenericTypeDefinition), publicOnly: false)
+                .AsImplementedInterfaces()
+                .WithScopedLifetime()
+            .AddClasses(classes => classes
+                .AssignableTo(typeof(ICommandHandler<,>))
+                .Where(type => !type.IsGenericTypeDefinition), publicOnly: false)
+                .AsImplementedInterfaces()
+                .WithScopedLifetime());
 
-        var handlerTypes = assembly.GetTypes()
-            .Where(type => type is { IsAbstract: false, IsGenericTypeDefinition: false })
-            .Where(type => type.GetInterfaces().Any(i =>
-                i.IsGenericType && handlerInterfaces.Contains(i.GetGenericTypeDefinition())));
-
-        foreach (var handlerType in handlerTypes)
-        {
-            var implementedInterfaces = handlerType.GetInterfaces()
-                .Where(i => i.IsGenericType && handlerInterfaces.Contains(i.GetGenericTypeDefinition()));
-
-            foreach (var handlerInterface in implementedInterfaces)
-                services.AddScoped(handlerInterface, handlerType);
-        }
+        services.Decorate(typeof(ICommandHandler<>), typeof(LoggingCommandHandler<>));
+        services.Decorate(typeof(ICommandHandler<,>), typeof(LoggingCommandHandler<,>));
     }
 }
