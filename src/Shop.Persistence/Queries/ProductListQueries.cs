@@ -11,13 +11,15 @@ internal sealed class ProductListQueries(AppDbContext context, ISlugGenerator sl
     private const string SortNewest = "newest";
     private const string SortPriceAsc = "price_asc";
     private const string SortPriceDesc = "price_desc";
+    private const string SortNameAsc = "name_asc";
+    private const string SortNameDesc = "name_desc";
 
     public async Task<Result<ProductListResponse, Error>> ListAsync(
         ProductListQuery query, CancellationToken cancellationToken)
     {
         string sort = string.IsNullOrWhiteSpace(query.Sort) ? SortNewest : query.Sort.Trim();
 
-        if (sort is not (SortNewest or SortPriceAsc or SortPriceDesc))
+        if (sort is not (SortNewest or SortPriceAsc or SortPriceDesc or SortNameAsc or SortNameDesc))
             return DomainErrors.Products.UnknownSort(sort);
 
         // Поддерево: категория и её прямые дети. Опирается на ограничение глубины двумя уровнями.
@@ -49,6 +51,12 @@ internal sealed class ProductListQueries(AppDbContext context, ISlugGenerator sl
 
         var ordered = sort switch
         {
+            SortNameAsc => rows.OrderBy(row => EF.Functions.Collate(
+                                    row.product.Name, TextComparers.UkrainianCollation))
+                               .ThenBy(row => row.variant.Id),
+            SortNameDesc => rows.OrderByDescending(row => EF.Functions.Collate(
+                                     row.product.Name, TextComparers.UkrainianCollation))
+                                .ThenBy(row => row.variant.Id),
             SortPriceAsc => rows.OrderBy(row => row.variant.Price.Value)
                                 .ThenBy(row => row.variant.Id),
             SortPriceDesc => rows.OrderByDescending(row => row.variant.Price.Value)
