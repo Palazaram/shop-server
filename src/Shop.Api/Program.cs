@@ -33,7 +33,7 @@ var connectionString = builder.Configuration.GetConnectionString("Database")
 
 builder.Services
     .AddApplication(builder.Configuration)
-    .AddInfrastructure(builder.Configuration)
+    .AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath)
     .AddPersistence(connectionString);
 
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
@@ -78,6 +78,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseFrontendCors();
+
+app.UseProductImages();
 
 app.UseAuthentication();
 app.UseAuthorization();

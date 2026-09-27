@@ -66,6 +66,7 @@ public static class OpenApiExtensions
             });
 
             options.AddSchemaTransformer<RequiredFromValidatorSchemaTransformer>();
+            options.AddOperationTransformer<MultipartFormOperationTransformer>();
         });
 
         return services;

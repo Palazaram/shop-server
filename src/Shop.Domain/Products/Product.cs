@@ -8,8 +8,11 @@ namespace Shop.Domain.Products;
 public sealed class Product : AggregateRoot<Guid>
 {
     private readonly List<ProductAttributeValue> _attributeValues = [];
+    private readonly List<ProductImage> _images = [];
+
     public const int MaxNameLength = 200;
     public const int MaxDescriptionLength = 4000;
+    public const int MaxImages = 10;
 
     private Product(
         Guid id,
@@ -21,7 +24,7 @@ public sealed class Product : AggregateRoot<Guid>
         Name = name;
         Description = description;
         CategoryId = categoryId;
-        ManufacturerId = manufacturerId; 
+        ManufacturerId = manufacturerId;
     }
 
     private Product() { }
@@ -31,6 +34,7 @@ public sealed class Product : AggregateRoot<Guid>
     public Guid CategoryId { get; private set; }
     public Guid ManufacturerId { get; private set; }
     public IReadOnlyList<ProductAttributeValue> AttributeValues => _attributeValues;
+    public IReadOnlyList<ProductImage> Images => _images;
 
     public static Result<Product, Error> Create(
         string? name,
@@ -114,6 +118,89 @@ public sealed class Product : AggregateRoot<Guid>
         return default;
     }
 
+    /// <summary>
+    /// Новое изображение встаёт последним. Файлы кладёт вызывающий: домен знает только порядок
+    /// и подпись, а путь на диске выводится из Id товара и Id изображения.
+    /// </summary>
+    public Result<ProductImage, Error> AddImage(string? alt)
+    {
+        if (_images.Count >= MaxImages)
+            return DomainErrors.Products.TooManyImages(MaxImages);
+
+        Result<string?, Error> normalizedAlt = NormalizeAlt(alt);
+        if (normalizedAlt.IsFailure)
+            return normalizedAlt.Error;
+
+        var image = new ProductImage(Guid.CreateVersion7(), Id, _images.Count, normalizedAlt.Value);
+
+        _images.Add(image);
+
+        return image;
+    }
+
+    public UnitResult<Error> RemoveImage(Guid imageId)
+    {
+        ProductImage? image = _images.SingleOrDefault(candidate => candidate.Id == imageId);
+
+        if (image is null)
+            return DomainErrors.Products.ImageNotFound();
+
+        _images.Remove(image);
+        RenumberImages();
+
+        return default;
+    }
+
+    /// <summary>
+    /// Список обязан содержать все изображения товара целиком — как и у категорий:
+    /// частичная перестановка оставила бы порядок неопределённым.
+    /// </summary>
+    public UnitResult<Error> ReorderImages(IReadOnlyList<Guid> imageIds)
+    {
+        ArgumentNullException.ThrowIfNull(imageIds);
+
+        if (imageIds.Distinct().Count() != imageIds.Count)
+            return DomainErrors.Products.DuplicateImageInOrder();
+
+        if (imageIds.Count != _images.Count)
+            return DomainErrors.Products.ImageOrderIsIncomplete(_images.Count);
+
+        Dictionary<Guid, ProductImage> byId = _images.ToDictionary(image => image.Id);
+
+        foreach (Guid imageId in imageIds)
+            if (!byId.ContainsKey(imageId))
+                return DomainErrors.Products.ImageNotOnProduct(imageId);
+
+        for (int index = 0; index < imageIds.Count; index++)
+            byId[imageIds[index]].SetDisplayOrder(index);
+
+        return default;
+    }
+
+    public UnitResult<Error> ChangeImageAlt(Guid imageId, string? alt)
+    {
+        ProductImage? image = _images.SingleOrDefault(candidate => candidate.Id == imageId);
+
+        if (image is null)
+            return DomainErrors.Products.ImageNotFound();
+
+        Result<string?, Error> normalizedAlt = NormalizeAlt(alt);
+        if (normalizedAlt.IsFailure)
+            return normalizedAlt.Error;
+
+        image.SetAlt(normalizedAlt.Value);
+
+        return default;
+    }
+
+    private void RenumberImages()
+    {
+        int order = 0;
+
+        foreach (ProductImage image in _images.OrderBy(image => image.DisplayOrder))
+            image.SetDisplayOrder(order++);
+    }
+
     private static Result<string, Error> NormalizeName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -136,6 +223,19 @@ public sealed class Product : AggregateRoot<Guid>
 
         if (normalized.Length > MaxDescriptionLength)
             return DomainErrors.Products.DescriptionTooLong(MaxDescriptionLength);
+
+        return normalized;
+    }
+
+    private static Result<string?, Error> NormalizeAlt(string? alt)
+    {
+        if (string.IsNullOrWhiteSpace(alt))
+            return Result.Success<string?, Error>(null);
+
+        string normalized = alt.CollapseWhitespace();
+
+        if (normalized.Length > ProductImage.MaxAltLength)
+            return DomainErrors.Products.ImageAltTooLong(ProductImage.MaxAltLength);
 
         return normalized;
     }

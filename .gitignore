@@ -365,3 +365,4 @@ FodyWeavers.xsd
 .env
 Claude outputs/
 Logs/
+App_Data/

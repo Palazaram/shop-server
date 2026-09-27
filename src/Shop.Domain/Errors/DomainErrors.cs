@@ -348,6 +348,50 @@ public static class DomainErrors
         public static Error InvalidPrice(string key, string value)
             => Error.Validation("product.filter.invalid_price",
                 $"Parameter '{key}' is not a valid price: '{value}'");
+
+        public static Error TooManyImages(int maxImages)
+            => Error.Validation("product.images.too_many",
+                $"A product can have at most {maxImages} images");
+
+        public static Error ImageNotFound()
+            => Error.NotFound("product.image.not_found", "Image not found");
+
+        public static Error ImageAltTooLong(int maxLength)
+            => Error.Validation("product.image.alt.max_length",
+                $"Image alt text must not exceed {maxLength} characters");
+
+        public static Error DuplicateImageInOrder()
+            => Error.Validation("product.images.duplicate",
+                "The same image is listed more than once");
+
+        public static Error ImageOrderIsIncomplete(int expectedCount)
+            => Error.Validation("product.images.order_incomplete",
+                $"The order must list all {expectedCount} images of the product");
+
+        public static Error ImageIsRequired()
+            => Error.Validation("product.image.required", "Image file is required");
+
+        public static Error ImageFileTooLarge(int maxBytes)
+            => Error.Validation("product.image.file_too_large",
+                $"Image file must not exceed {maxBytes / (1024 * 1024)} MB");
+
+        public static Error ImageFormatNotSupported()
+            => Error.Validation("product.image.invalid_format",
+                "Only JPEG, PNG and WebP images are supported");
+
+        public static Error ImageResolutionTooLarge(int maxPixels)
+            => Error.Validation("product.image.resolution_too_large",
+                $"Image must not exceed {maxPixels / 1_000_000} megapixels");
+
+        public static Error ImageOrderIsRequired()
+            => Error.Validation("product.images.order_required", "Image order is required");
+
+        public static Error ImageIdIsInvalid()
+            => Error.Validation("product.images.invalid_id", "Image id must not be empty");
+
+        public static Error ImageNotOnProduct(Guid imageId)
+            => Error.Validation("product.images.unknown_image",
+                $"Image {imageId} does not belong to this product");
     }
 
     public static class ProductVariants
