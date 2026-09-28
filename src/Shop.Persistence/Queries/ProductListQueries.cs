@@ -105,23 +105,8 @@ internal sealed class ProductListQueries(AppDbContext context, ImageUrlOptions i
             })
             .ToListAsync(cancellationToken);
 
-        List<Guid> productIds = [.. page.Select(row => row.ProductId).Distinct()];
-
-        // Обложка — первая по порядку. Один запрос на страницу, а не по запросу на товар.
-        var covers = await context.Set<ProductImage>()
-            .AsNoTracking()
-            .Where(image => productIds.Contains(image.ProductId) && image.DisplayOrder == 0)
-            .Select(image => new { image.ProductId, image.Id, image.Alt })
-            .ToListAsync(cancellationToken);
-
-        Dictionary<Guid, ProductImageThumbnail> coverByProduct = covers.ToDictionary(
-            cover => cover.ProductId,
-            cover => new ProductImageThumbnail(
-                ProductImagePaths.Url(
-                    imageUrls.PublicBaseUrl, cover.ProductId, cover.Id, ProductImagePaths.ThumbSize),
-                ProductImagePaths.Url(
-                    imageUrls.PublicBaseUrl, cover.ProductId, cover.Id, ProductImagePaths.CardSize),
-                cover.Alt));
+        Dictionary<Guid, ProductImageThumbnail> coverByProduct = await LoadCoversAsync(
+            [.. page.Select(row => row.ProductId).Distinct()], cancellationToken);
 
         IReadOnlyList<ProductListItemResponse> items =
         [
@@ -142,5 +127,84 @@ internal sealed class ProductListQueries(AppDbContext context, ImageUrlOptions i
             : (int)Math.Ceiling(totalItems / (double)query.PageSize);
 
         return new ProductListResponse(items, query.Page, query.PageSize, totalItems, totalPages);
+    }
+
+    /// <summary>
+    /// Карточка главной — одна на препарат: самая дешёвая фасовка, при равной цене меньший id.
+    /// Товар без фасовок показывать нечем, и в подборку он не попадает.
+    /// </summary>
+    public async Task<IReadOnlyList<ProductListItemResponse>> GetFeaturedAsync(
+        int limit, CancellationToken cancellationToken)
+    {
+        var rows = await (
+            from product in context.Products.AsNoTracking().Where(p => p.IsFeatured)
+            join manufacturer in context.Manufacturers
+                on product.ManufacturerId equals manufacturer.Id
+            // Подзапрос отдаёт только id. Стоит ему вернуть саму фасовку — и EF соберёт
+            // каждое скалярное поле отдельным подзапросом, а Packaging и Price, как
+            // комплексные свойства, через ROW_NUMBER() по всей таблице фасовок: замер на
+            // 50 000 строк дал 55.6 мс против 0.9 мс. Соединение по первичному ключу
+            // читает нужную строку один раз. Товар без фасовок отсеивается самим join:
+            // его id равен null и не совпадает ни с чем.
+            let cheapestVariantId = context.ProductVariants
+                .Where(v => v.ProductId == product.Id)
+                .OrderBy(v => v.Price.Value)
+                .ThenBy(v => v.Id)
+                .Select(v => (Guid?)v.Id)
+                .FirstOrDefault()
+            join variant in context.ProductVariants
+                on cheapestVariantId equals (Guid?)variant.Id
+            orderby product.Id descending
+            select new
+            {
+                variant.Id,
+                variant.Sku,
+                variant.Slug,
+                variant.Packaging,
+                variant.Price,
+                variant.StockQuantity,
+                ProductId = product.Id,
+                ProductName = product.Name,
+                ManufacturerName = manufacturer.Name
+            })
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        Dictionary<Guid, ProductImageThumbnail> coverByProduct = await LoadCoversAsync(
+            [.. rows.Select(row => row.ProductId)], cancellationToken);
+
+        return
+        [
+            .. rows.Select(row => new ProductListItemResponse(
+                row.Id,
+                row.ProductId,
+                $"{row.ProductName} {row.Packaging}",
+                row.Slug.Value,
+                row.Sku,
+                row.Price.Value,
+                row.StockQuantity,
+                row.ManufacturerName,
+                coverByProduct.GetValueOrDefault(row.ProductId)))
+        ];
+    }
+
+    // Обложка — первая по порядку. Один запрос на страницу, а не по запросу на товар.
+    private async Task<Dictionary<Guid, ProductImageThumbnail>> LoadCoversAsync(
+        List<Guid> productIds, CancellationToken cancellationToken)
+    {
+        var covers = await context.Set<ProductImage>()
+            .AsNoTracking()
+            .Where(image => productIds.Contains(image.ProductId) && image.DisplayOrder == 0)
+            .Select(image => new { image.ProductId, image.Id, image.Alt })
+            .ToListAsync(cancellationToken);
+
+        return covers.ToDictionary(
+            cover => cover.ProductId,
+            cover => new ProductImageThumbnail(
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, cover.ProductId, cover.Id, ProductImagePaths.ThumbSize),
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, cover.ProductId, cover.Id, ProductImagePaths.CardSize),
+                cover.Alt));
     }
 }

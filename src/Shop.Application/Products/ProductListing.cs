@@ -61,8 +61,18 @@ public sealed record ProductListResponse(
     int TotalItems,
     int TotalPages);
 
+public static class FeaturedProducts
+{
+    public const int DefaultLimit = 12;
+    public const int MaxLimit = 24;
+}
+
 public interface IProductListQueries
 {
     Task<Result<ProductListResponse, Error>> ListAsync(
         ProductListQuery query, CancellationToken cancellationToken);
+
+    /// <summary>Подборка главной: по одной карточке на отмеченный товар.</summary>
+    Task<IReadOnlyList<ProductListItemResponse>> GetFeaturedAsync(
+        int limit, CancellationToken cancellationToken);
 }

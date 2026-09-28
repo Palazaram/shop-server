@@ -96,6 +96,15 @@ internal static class ProductListQueryParser
         return new ProductListQuery(categoryId, filters.Value, source["sort"], page, pageSize);
     }
 
+    /// <summary>
+    /// Зажимается так же, как page и pageSize: длина ответа сразу показывает, что применилось.
+    /// </summary>
+    public static int ReadLimit(IQueryCollection source, int defaultLimit, int maxLimit)
+        => long.TryParse(source["limit"], NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out long parsed)
+            ? (int)Math.Clamp(parsed, 1, maxLimit)
+            : defaultLimit;
+
     private static (decimal? Value, string? Invalid) ReadPrice(IQueryCollection source, string key)
     {
         string? raw = source[key];

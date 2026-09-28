@@ -279,6 +279,9 @@ public static class DomainErrors
         public static Error NameIsRequired()
             => Error.Validation("product.name.required", "Product name is required");
 
+        public static Error IsFeaturedIsRequired()
+            => Error.Validation("product.is_featured.required", "Featured flag is required");
+
         public static Error NameTooLong(int maxLength)
             => Error.Validation("product.name.max_length",
                 $"Product name must not exceed {maxLength} characters");

@@ -22,6 +22,12 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Description)
             .HasMaxLength(Product.MaxDescriptionLength);
 
+        // Умолчание остаётся в схеме намеренно, вопреки общему правилу «снять после заполнения»:
+        // в эту таблицу пишет не только приложение (tools/seed-agro.sql вставляет товары
+        // перечислением колонок), а false здесь — не «пустое значение», а законное состояние.
+        builder.Property(p => p.IsFeatured)
+            .HasDefaultValue(false);
+
         builder.HasOne<Category>()
             .WithMany()
             .HasForeignKey(p => p.CategoryId)
@@ -51,6 +57,10 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => new { p.ManufacturerId, p.Name })
             .IsUnique();
         builder.HasIndex(p => p.CategoryId);
+
+        // Частичный: главная спрашивает только отмеченные, и их единицы.
+        builder.HasIndex(p => p.IsFeatured)
+            .HasFilter("is_featured");
 
         builder.HasIndex(p => p.Name, "ix_products_name_trgm")
             .HasDatabaseName("ix_products_name_trgm")

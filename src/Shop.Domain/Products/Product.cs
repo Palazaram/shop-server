@@ -33,6 +33,7 @@ public sealed class Product : AggregateRoot<Guid>
     public string? Description { get; private set; }
     public Guid CategoryId { get; private set; }
     public Guid ManufacturerId { get; private set; }
+    public bool IsFeatured { get; private set; }
     public IReadOnlyList<ProductAttributeValue> AttributeValues => _attributeValues;
     public IReadOnlyList<ProductImage> Images => _images;
 
@@ -99,6 +100,12 @@ public sealed class Product : AggregateRoot<Guid>
 
         ManufacturerId = manufacturerId;
     }
+
+    /// <summary>
+    /// Подборка главной страницы. Флаг стоит на препарате, а не на фасовке: на главную
+    /// выносят товар, а какую из его фасовок показать — решает выдача.
+    /// </summary>
+    public void SetFeatured(bool isFeatured) => IsFeatured = isFeatured;
 
     public UnitResult<Error> SetAttributeValues(IReadOnlyList<Guid> valueIds)
     {

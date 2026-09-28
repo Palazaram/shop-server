@@ -46,4 +46,17 @@ public sealed class CatalogController(
 
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
+
+    [HttpGet("featured")]
+    [ProducesResponseType<IReadOnlyList<ProductListItemResponse>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetFeatured(CancellationToken cancellationToken)
+    {
+        int limit = ProductListQueryParser.ReadLimit(
+            Request.Query, FeaturedProducts.DefaultLimit, FeaturedProducts.MaxLimit);
+
+        IReadOnlyList<ProductListItemResponse> items =
+            await productListQueries.GetFeaturedAsync(limit, cancellationToken);
+
+        return Ok(items);
+    }
 }
