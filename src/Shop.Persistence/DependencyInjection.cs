@@ -45,7 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IProductAttributeQueries, ProductAttributeQueries>();
         services.AddScoped<IProductQueries, ProductQueries>();
         services.AddScoped<IProductListQueries, ProductListQueries>();
-        services.AddScoped<ICategoryFilterQueries, CategoryFilterQueries>();
+        services.AddScoped<IProductFilterQueries, ProductFilterQueries>();
         services.AddScoped<ICountryQueries, CountryQueries>();
 
         services.AddHealthChecks()

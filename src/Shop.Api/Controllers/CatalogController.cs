@@ -9,7 +9,9 @@ namespace Shop.Api.Controllers;
 
 [Route("api/catalog")]
 [AllowAnonymous]
-public sealed class CatalogController(IProductListQueries productListQueries) : ApiControllerBase
+public sealed class CatalogController(
+    IProductListQueries productListQueries,
+    IProductFilterQueries productFilterQueries) : ApiControllerBase
 {
     [HttpGet("products")]
     [ProducesResponseType<ProductListResponse>(StatusCodes.Status200OK)]
@@ -24,6 +26,22 @@ public sealed class CatalogController(IProductListQueries productListQueries) : 
 
         Result<ProductListResponse, Error> result =
             await productListQueries.ListAsync(query.Value, cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
+    }
+
+    [HttpGet("filters")]
+    [ProducesResponseType<ProductFiltersResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetFilters(CancellationToken cancellationToken)
+    {
+        Result<ProductFilterSet, Error> filters = ProductListQueryParser.ParseFilters(Request.Query);
+
+        if (filters.IsFailure)
+            return ToActionResult(filters.Error);
+
+        Result<ProductFiltersResponse, Error> result =
+            await productFilterQueries.GetAsync(categoryId: null, filters.Value, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }

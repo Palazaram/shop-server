@@ -1,7 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using Shop.Api.Extensions;
 using Shop.Application.Abstractions;
 using Shop.Application.Categories;
@@ -13,7 +12,6 @@ using Shop.Application.Categories.SetCategoryAttributes;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
-using System.Globalization;
 
 namespace Shop.Api.Controllers;
 
@@ -27,7 +25,7 @@ public sealed class CategoriesController(
     ICommandHandler<ChangeCategorySlugCommand> changeCategorySlugHandler,
     ICategoryQueries categoryQueries,
     IProductListQueries productListQueries,
-    ICategoryFilterQueries categoryFilterQueries)
+    IProductFilterQueries productFilterQueries)
         : ApiControllerBase
 {
     [HttpPost]
@@ -134,7 +132,7 @@ public sealed class CategoriesController(
 
     [HttpGet("{categoryId:guid}/filters")]
     [AllowAnonymous]
-    [ProducesResponseType<CategoryFiltersResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProductFiltersResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetFilters(Guid categoryId, CancellationToken cancellationToken)
@@ -144,8 +142,8 @@ public sealed class CategoriesController(
         if (filters.IsFailure)
             return ToActionResult(filters.Error);
 
-        Result<CategoryFiltersResponse, Error> result =
-            await categoryFilterQueries.GetAsync(categoryId, filters.Value, cancellationToken);
+        Result<ProductFiltersResponse, Error> result =
+            await productFilterQueries.GetAsync(categoryId, filters.Value, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
     }
