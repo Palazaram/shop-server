@@ -36,8 +36,9 @@ public sealed class Packaging : ValueObject
     // Часть адреса — третье назначение помимо ToString() (отображение) и Key (опознание).
     // Разведены потому, что меняться им можно по-разному: отображение свободно,
     // ключ при переименовании члена перечисления, адрес — никогда.
+    // Число и единица пишутся слитно: «250g» — одна величина, как на упаковке.
     public string SlugPart
-        => $"{Value.ToString("0.###", CultureInfo.InvariantCulture)} {Unit.ToSlugSymbol()}";
+        => $"{Value.ToString("0.###", CultureInfo.InvariantCulture)}{Unit.ToSlugSymbol()}";
 
     protected override IEnumerable<IComparable> GetEqualityComponents()
     {
