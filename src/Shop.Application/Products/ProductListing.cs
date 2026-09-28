@@ -40,6 +40,8 @@ public sealed record ProductListQuery(
     public const int MaxPageSize = 60;
 }
 
+public sealed record ProductImageThumbnail(string ThumbUrl, string CardUrl, string? Alt);
+
 public sealed record ProductListItemResponse(
     Guid VariantId,
     Guid ProductId,
@@ -48,7 +50,8 @@ public sealed record ProductListItemResponse(
     string Sku,
     decimal Price,
     int StockQuantity,
-    string ManufacturerName);
+    string ManufacturerName,
+    ProductImageThumbnail? Image);
 
 public sealed record ProductListResponse(
     IReadOnlyList<ProductListItemResponse> Items,

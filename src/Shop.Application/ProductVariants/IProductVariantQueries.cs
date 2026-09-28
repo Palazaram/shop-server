@@ -2,6 +2,12 @@
 
 namespace Shop.Application.ProductVariants;
 
+public sealed record ProductImageResponse(
+    string ThumbUrl,
+    string CardUrl,
+    string FullUrl,
+    string? Alt);
+
 public sealed record ProductVariantListItemResponse(
     Guid Id,
     string Sku,
@@ -25,6 +31,7 @@ public sealed record ProductVariantDetailResponse(
     decimal Price,
     int StockQuantity,
     bool IsInStock,
+    IReadOnlyList<ProductImageResponse> Images,
     IReadOnlyList<ProductVariantListItemResponse> OtherPackagings);
 
 public interface IProductVariantQueries

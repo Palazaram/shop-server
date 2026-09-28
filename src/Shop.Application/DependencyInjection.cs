@@ -23,7 +23,13 @@ public static class DependencyInjection
             .Validate(o => o.LifetimeDays > 0, "RefreshToken:LifetimeDays must be greater than zero.")
             .ValidateOnStart();
 
+        services.AddOptions<ImageUrlOptions>()
+            .Bind(configuration.GetSection(ImageUrlOptions.SectionName))
+            .Validate(o => !string.IsNullOrWhiteSpace(o.PublicBaseUrl), "Images:PublicBaseUrl must not be empty.")
+            .ValidateOnStart();
+
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<RefreshTokenOptions>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<ImageUrlOptions>>().Value);
 
         return services;
     }

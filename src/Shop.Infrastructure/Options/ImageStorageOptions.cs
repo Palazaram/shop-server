@@ -6,6 +6,4 @@ public sealed class ImageStorageOptions
 
     /// <summary>В конфигурации путь относительный; при регистрации он превращается в абсолютный.</summary>
     public string RootPath { get; set; } = "App_Data/images";
-
-    public string PublicBaseUrl { get; init; } = "/images";
 }

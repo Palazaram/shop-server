@@ -1,16 +1,18 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
+using Shop.Application.Options;
+using Shop.Application.Products;
 using Shop.Application.ProductVariants;
 using Shop.Domain.Common;
 using Shop.Domain.Errors;
+using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
 
-internal sealed class ProductVariantQueries(AppDbContext context) : IProductVariantQueries
+internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOptions imageUrls)
+    : IProductVariantQueries
 {
-    public async Task<Maybe<ProductVariantDetailResponse>> GetBySlugAsync(
-        string slug,
-        CancellationToken cancellationToken)
+    public async Task<Maybe<ProductVariantDetailResponse>> GetBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         Result<Slug, Error> slugResult = Slug.Create(slug);
         if (slugResult.IsFailure)
@@ -48,6 +50,9 @@ internal sealed class ProductVariantQueries(AppDbContext context) : IProductVari
         IReadOnlyList<ProductVariantListItemResponse> otherPackagings =
             await LoadVariantsAsync(row.ProductId, row.Id, cancellationToken);
 
+        IReadOnlyList<ProductImageResponse> images =
+            await LoadImagesAsync(row.ProductId, cancellationToken);
+
         return new ProductVariantDetailResponse(
             row.Id,
             row.Slug.Value,
@@ -62,6 +67,7 @@ internal sealed class ProductVariantQueries(AppDbContext context) : IProductVari
             row.Price.Value,
             row.StockQuantity,
             row.StockQuantity > 0,
+            images,
             otherPackagings);
     }
 
@@ -98,5 +104,27 @@ internal sealed class ProductVariantQueries(AppDbContext context) : IProductVari
                 v.StockQuantity,
                 v.StockQuantity > 0))
             .ToList();
+    }
+
+    private async Task<IReadOnlyList<ProductImageResponse>> LoadImagesAsync(Guid productId, CancellationToken cancellationToken)
+    {
+        var rows = await context.Set<ProductImage>()
+            .AsNoTracking()
+            .Where(image => image.ProductId == productId)
+            .OrderBy(image => image.DisplayOrder)
+            .Select(image => new { image.Id, image.Alt })
+            .ToListAsync(cancellationToken);
+
+        return
+        [
+            .. rows.Select(image => new ProductImageResponse(
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, productId, image.Id, ProductImagePaths.ThumbSize),
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, productId, image.Id, ProductImagePaths.CardSize),
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, productId, image.Id, ProductImagePaths.FullSize),
+                image.Alt))
+        ];
     }
 }

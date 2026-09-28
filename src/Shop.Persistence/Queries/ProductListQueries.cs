@@ -1,11 +1,14 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
+using Shop.Application.Options;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
+using Shop.Domain.Products;
 
 namespace Shop.Persistence.Queries;
 
-internal sealed class ProductListQueries(AppDbContext context) : IProductListQueries
+internal sealed class ProductListQueries(AppDbContext context, ImageUrlOptions imageUrls)
+    : IProductListQueries
 {
     private const string SortNewest = "newest";
     private const string SortPriceAsc = "price_asc";
@@ -97,6 +100,24 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
             })
             .ToListAsync(cancellationToken);
 
+        List<Guid> productIds = [.. page.Select(row => row.ProductId).Distinct()];
+
+        // Обложка — первая по порядку. Один запрос на страницу, а не по запросу на товар.
+        var covers = await context.Set<ProductImage>()
+            .AsNoTracking()
+            .Where(image => productIds.Contains(image.ProductId) && image.DisplayOrder == 0)
+            .Select(image => new { image.ProductId, image.Id, image.Alt })
+            .ToListAsync(cancellationToken);
+
+        Dictionary<Guid, ProductImageThumbnail> coverByProduct = covers.ToDictionary(
+            cover => cover.ProductId,
+            cover => new ProductImageThumbnail(
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, cover.ProductId, cover.Id, ProductImagePaths.ThumbSize),
+                ProductImagePaths.Url(
+                    imageUrls.PublicBaseUrl, cover.ProductId, cover.Id, ProductImagePaths.CardSize),
+                cover.Alt));
+
         IReadOnlyList<ProductListItemResponse> items =
         [
             .. page.Select(row => new ProductListItemResponse(
@@ -107,7 +128,8 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
                 row.Sku,
                 row.Price.Value,
                 row.StockQuantity,
-                row.ManufacturerName))
+                row.ManufacturerName,
+                coverByProduct.GetValueOrDefault(row.ProductId)))
         ];
 
         int totalPages = totalItems == 0

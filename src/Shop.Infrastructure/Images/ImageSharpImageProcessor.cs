@@ -41,7 +41,15 @@ internal sealed class ImageSharpImageProcessor : IImageProcessor
             // Снимаем EXIF: там и координаты съёмки, и лишние килобайты в каждой копии.
             image.Metadata.ExifProfile = null;
 
-            var encoder = new WebpEncoder { Quality = WebpQuality };
+            // Без явного режима WebpEncoder кодирует PNG без потерь, и Quality не действует:
+            // «фото» в 3 МБ превращается в 1.8 МБ вместо ~200 КБ. Lossy умеет альфа-канал,
+            // так что прозрачность при этом не теряется.
+            var encoder = new WebpEncoder
+            {
+                Quality = WebpQuality,
+                FileFormat = WebpFileFormatType.Lossy
+            };
+
             var results = new List<ImageVariant>(Variants.Length);
 
             foreach ((string size, int maxSide) in Variants)
