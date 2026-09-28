@@ -4,6 +4,7 @@ using Shop.Application.Countries;
 using Shop.Application.Manufacturers;
 using Shop.Application.ProductAttributes;
 using Shop.Application.Products;
+using Shop.Application.Catalog;
 using Shop.Application.Specifications;
 using Shop.Application.ProductVariants;
 using Shop.Domain.Abstractions;
@@ -51,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IProductFilterQueries, ProductFilterQueries>();
         services.AddScoped<ICountryQueries, CountryQueries>();
         services.AddScoped<ISpecificationQueries, SpecificationQueries>();
+        services.AddScoped<ISitemapQueries, SitemapQueries>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);

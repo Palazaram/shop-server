@@ -22,6 +22,12 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Description)
             .HasMaxLength(Product.MaxDescriptionLength);
 
+        builder.Property(p => p.MetaTitle)
+            .HasMaxLength(Product.MaxMetaTitleLength);
+
+        builder.Property(p => p.MetaDescription)
+            .HasMaxLength(Product.MaxMetaDescriptionLength);
+
         // Умолчание остаётся в схеме намеренно, вопреки общему правилу «снять после заполнения»:
         // в эту таблицу пишет не только приложение (tools/seed-agro.sql вставляет товары
         // перечислением колонок), а false здесь — не «пустое значение», а законное состояние.

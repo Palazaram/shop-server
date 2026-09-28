@@ -15,7 +15,12 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
     public async Task<Maybe<ProductVariantDetailResponse>> GetBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         Result<Slug, Error> slugResult = Slug.Create(slug);
-        if (slugResult.IsFailure)
+
+        // Slug.Create обрезает пробелы, поэтому «herbitsydy » разобралось бы в ту же запись
+        // и дало второй адрес с тем же содержимым. Адрес обязан совпадать с хранимым
+        // посимвольно: один ресурс — один URL.
+        if (slugResult.IsFailure
+            || !string.Equals(slug, slugResult.Value.Value, StringComparison.Ordinal))
             return Maybe<ProductVariantDetailResponse>.None;
 
         Slug parsedSlug = slugResult.Value;
@@ -39,6 +44,8 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
                 ProductId = product.Id,
                 ProductName = product.Name,
                 product.Description,
+                product.MetaTitle,
+                product.MetaDescription,
                 ManufacturerName = manufacturer.Name,
                 Country = country.Name,
                 CategoryName = category.Name
@@ -56,6 +63,18 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
         IReadOnlyList<ProductSpecificationResponse> specifications =
             await LoadSpecificationsAsync(row.ProductId, cancellationToken);
 
+        // Каноническая фасовка — самая дешёвая, при равной цене меньший id. То же правило,
+        // что и в подборке главной (ProductListQueries.GetFeaturedAsync) и в карте сайта:
+        // разойдись они, поисковик склеивал бы страницы не туда, куда ведёт витрина.
+        // Вынести в общий метод нельзя — внутри подзапроса EF не переведёт его вызов.
+        string canonicalSlug = await context.ProductVariants
+            .AsNoTracking()
+            .Where(v => v.ProductId == row.ProductId)
+            .OrderBy(v => v.Price.Value)
+            .ThenBy(v => v.Id)
+            .Select(v => v.Slug.Value)
+            .FirstAsync(cancellationToken);
+
         return new ProductVariantDetailResponse(
             row.Id,
             row.Slug.Value,
@@ -70,6 +89,9 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
             row.Price.Value,
             row.StockQuantity,
             row.StockQuantity > 0,
+            row.MetaTitle,
+            row.MetaDescription,
+            canonicalSlug,
             images,
             specifications,
             otherPackagings);

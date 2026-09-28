@@ -14,6 +14,8 @@ public sealed class Product : AggregateRoot<Guid>
     public const int MaxNameLength = 200;
     public const int MaxDescriptionLength = 4000;
     public const int MaxImages = 10;
+    public const int MaxMetaTitleLength = 200;
+    public const int MaxMetaDescriptionLength = 500;
 
     private Product(
         Guid id,
@@ -35,6 +37,8 @@ public sealed class Product : AggregateRoot<Guid>
     public Guid CategoryId { get; private set; }
     public Guid ManufacturerId { get; private set; }
     public bool IsFeatured { get; private set; }
+    public string? MetaTitle { get; private set; }
+    public string? MetaDescription { get; private set; }
     public IReadOnlyList<ProductAttributeValue> AttributeValues => _attributeValues;
     public IReadOnlyList<ProductImage> Images => _images;
     public IReadOnlyList<ProductSpecification> Specifications => _specifications;
@@ -243,6 +247,33 @@ public sealed class Product : AggregateRoot<Guid>
         foreach (ProductImage image in _images.OrderBy(image => image.DisplayOrder))
             image.SetDisplayOrder(order++);
     }
+
+
+    /// <summary>
+    /// Заголовок и описание для поисковика. Пустая строка — это «стереть», поэтому она
+    /// превращается в null: отличать «не заполнено» от «заполнено пустым» здесь незачем.
+    /// Ограничения длины — техническая граница, а не рекомендация по SEO: подсказать
+    /// про 60 и 160 символов должна админка, обрезать за человека мы не вправе.
+    /// </summary>
+    public UnitResult<Error> SetSeo(string? metaTitle, string? metaDescription)
+    {
+        string? title = NormalizeMeta(metaTitle);
+        string? description = NormalizeMeta(metaDescription);
+
+        if (title is not null && title.Length > MaxMetaTitleLength)
+            return DomainErrors.Products.MetaTitleTooLong(MaxMetaTitleLength);
+
+        if (description is not null && description.Length > MaxMetaDescriptionLength)
+            return DomainErrors.Products.MetaDescriptionTooLong(MaxMetaDescriptionLength);
+
+        MetaTitle = title;
+        MetaDescription = description;
+
+        return default;
+    }
+
+    private static string? NormalizeMeta(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.CollapseWhitespace();
 
     private static Result<string, Error> NormalizeName(string? name)
     {

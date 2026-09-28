@@ -10,6 +10,8 @@ public sealed class Category : AggregateRoot<Guid>
 {
     private readonly List<CategoryAttribute> _attributes = [];
     public const int MaxNameLength = 100;
+    public const int MaxMetaTitleLength = 200;
+    public const int MaxMetaDescriptionLength = 500;
 
     private Category(Guid id, string name, Slug slug, Guid? parentId, int displayOrder) : base(id)
     {
@@ -25,6 +27,8 @@ public sealed class Category : AggregateRoot<Guid>
     public Slug Slug { get; private set; } = null!;
     public Guid? ParentId { get; private set; }
     public int DisplayOrder { get; private set; }
+    public string? MetaTitle { get; private set; }
+    public string? MetaDescription { get; private set; }
     public IReadOnlyList<CategoryAttribute> Attributes => _attributes;
 
     public static Result<Category, Error> Create(string? name, Slug slug, Guid? parentId, int displayOrder)
@@ -84,6 +88,33 @@ public sealed class Category : AggregateRoot<Guid>
 
         return default;
     }
+
+
+    /// <summary>
+    /// Заголовок и описание для поисковика. Пустая строка — это «стереть», поэтому она
+    /// превращается в null: отличать «не заполнено» от «заполнено пустым» здесь незачем.
+    /// Ограничения длины — техническая граница, а не рекомендация по SEO: подсказать
+    /// про 60 и 160 символов должна админка, обрезать за человека мы не вправе.
+    /// </summary>
+    public UnitResult<Error> SetSeo(string? metaTitle, string? metaDescription)
+    {
+        string? title = NormalizeMeta(metaTitle);
+        string? description = NormalizeMeta(metaDescription);
+
+        if (title is not null && title.Length > MaxMetaTitleLength)
+            return DomainErrors.Categories.MetaTitleTooLong(MaxMetaTitleLength);
+
+        if (description is not null && description.Length > MaxMetaDescriptionLength)
+            return DomainErrors.Categories.MetaDescriptionTooLong(MaxMetaDescriptionLength);
+
+        MetaTitle = title;
+        MetaDescription = description;
+
+        return default;
+    }
+
+    private static string? NormalizeMeta(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.CollapseWhitespace();
 
     private static Result<string, Error> NormalizeName(string? name)
     {

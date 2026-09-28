@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Shop.Application.Categories;
 using Shop.Domain.Categories;
+using Shop.Domain.Common;
+using Shop.Domain.Errors;
 
 namespace Shop.Persistence.Queries;
 
@@ -38,6 +40,58 @@ internal sealed class CategoryQueries(AppDbContext context) : ICategoryQueries
                     ? children
                     : []))
             .ToList();
+    }
+
+    public async Task<Maybe<CategoryHeaderResponse>> GetBySlugAsync(
+        string slug,
+        CancellationToken cancellationToken)
+    {
+        Result<Slug, Error> slugResult = Slug.Create(slug);
+
+        // Неразбираемый слаг — это не «ошибка формата», а просто адрес, которого нет.
+        // Slug.Create обрезает пробелы, поэтому «herbitsydy » разобралось бы в ту же запись
+        // и дало второй адрес с тем же содержимым. Адрес обязан совпадать с хранимым
+        // посимвольно: один ресурс — один URL.
+        if (slugResult.IsFailure
+            || !string.Equals(slug, slugResult.Value.Value, StringComparison.Ordinal))
+            return Maybe<CategoryHeaderResponse>.None;
+
+        Slug parsedSlug = slugResult.Value;
+
+        var row = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.Slug == parsedSlug)
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                Slug = c.Slug.Value,
+                c.ParentId,
+                c.MetaTitle,
+                c.MetaDescription
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (row is null)
+            return Maybe<CategoryHeaderResponse>.None;
+
+        var parent = row.ParentId is null
+            ? null
+            : await context.Categories
+                .AsNoTracking()
+                .Where(c => c.Id == row.ParentId)
+                .Select(c => new { c.Name, Slug = c.Slug.Value })
+                .FirstOrDefaultAsync(cancellationToken);
+
+        return new CategoryHeaderResponse(
+            row.Id,
+            row.Name,
+            row.Slug,
+            row.ParentId,
+            parent?.Name,
+            parent?.Slug,
+            row.MetaTitle,
+            row.MetaDescription);
     }
 
     public async Task<Maybe<CategoryAttributesResponse>> GetAttributesAsync(Guid categoryId, CancellationToken cancellationToken)

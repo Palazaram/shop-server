@@ -38,6 +38,9 @@ public sealed record ProductVariantDetailResponse(
     decimal Price,
     int StockQuantity,
     bool IsInStock,
+    string? MetaTitle,
+    string? MetaDescription,
+    string CanonicalSlug,
     IReadOnlyList<ProductImageResponse> Images,
     IReadOnlyList<ProductSpecificationResponse> Specifications,
     IReadOnlyList<ProductVariantListItemResponse> OtherPackagings);

@@ -151,6 +151,15 @@ public static class DomainErrors
             => Error.Conflict("category.slug.already_exists",
                 "A category with this slug already exists");
 
+
+        public static Error MetaTitleTooLong(int maxLength)
+            => Error.Validation("category.meta_title.max_length",
+                $"Meta title must not exceed {maxLength} characters");
+
+        public static Error MetaDescriptionTooLong(int maxLength)
+            => Error.Validation("category.meta_description.max_length",
+                $"Meta description must not exceed {maxLength} characters");
+
         public static Error SlugCannotBeGenerated()
             => Error.Validation("category.slug.cannot_be_generated",
                 "Could not generate a slug from the category name, provide it explicitly");
@@ -278,6 +287,14 @@ public static class DomainErrors
     {
         public static Error NameIsRequired()
             => Error.Validation("product.name.required", "Product name is required");
+
+        public static Error MetaTitleTooLong(int maxLength)
+            => Error.Validation("product.meta_title.max_length",
+                $"Meta title must not exceed {maxLength} characters");
+
+        public static Error MetaDescriptionTooLong(int maxLength)
+            => Error.Validation("product.meta_description.max_length",
+                $"Meta description must not exceed {maxLength} characters");
 
         public static Error IsFeaturedIsRequired()
             => Error.Validation("product.is_featured.required", "Featured flag is required");

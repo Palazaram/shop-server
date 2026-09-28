@@ -9,6 +9,7 @@ using Shop.Application.Categories.CreateCategory;
 using Shop.Application.Categories.RenameCategory;
 using Shop.Application.Categories.ReorderCategories;
 using Shop.Application.Categories.SetCategoryAttributes;
+using Shop.Application.Categories.SetCategorySeo;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
@@ -23,6 +24,7 @@ public sealed class CategoriesController(
     ICommandHandler<ReorderCategoriesCommand> reorderCategoriesHandler,
     ICommandHandler<SetCategoryAttributesCommand> setAttributesHandler,
     ICommandHandler<ChangeCategorySlugCommand> changeCategorySlugHandler,
+    ICommandHandler<SetCategorySeoCommand> setCategorySeoHandler,
     ICategoryQueries categoryQueries,
     IProductListQueries productListQueries,
     IProductFilterQueries productFilterQueries)
@@ -75,6 +77,24 @@ public sealed class CategoriesController(
 
         UnitResult<Error> result =
             await changeCategorySlugHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPut("{categoryId:guid}/seo")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetSeo(
+        Guid categoryId,
+        SetCategorySeoRequest request,
+        CancellationToken cancellationToken)
+    {
+        SetCategorySeoCommand command = new(
+            categoryId, request.MetaTitle, request.MetaDescription);
+
+        UnitResult<Error> result =
+            await setCategorySeoHandler.HandleAsync(command, cancellationToken);
 
         return HandleResult(result);
     }
