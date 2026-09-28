@@ -25,12 +25,10 @@ internal sealed class CategoryRepository(AppDbContext context) : ICategoryReposi
 
     public Task<bool> ExistsBySlugAsync(
         Slug slug,
-        Guid? parentId,
         Guid? excludeCategoryId,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<Category> query = context.Categories
-            .Where(c => c.Slug == slug && c.ParentId == parentId);
+        IQueryable<Category> query = context.Categories.Where(c => c.Slug == slug);
 
         if (excludeCategoryId.HasValue)
             query = query.Where(c => c.Id != excludeCategoryId.Value);

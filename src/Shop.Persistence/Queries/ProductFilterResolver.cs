@@ -11,7 +11,8 @@ internal enum ResolvedFilterKind
 {
     AttributeValues = 1,
     Manufacturers = 2,
-    Packagings = 3
+    Packagings = 3,
+    Categories = 4
 }
 
 /// <summary>
@@ -40,6 +41,7 @@ internal sealed record ResolvedFilter(
 internal sealed record ManufacturerRef(Guid Id, string Slug, string Name, Guid CountryId);
 
 internal sealed record CountryRef(Guid Id, string Slug, string Name);
+internal sealed record CategoryRef(Guid Id, string Slug, Guid? ParentId);
 
 internal static class ProductFilterResolver
 {
@@ -75,6 +77,18 @@ internal static class ProductFilterResolver
             .ToListAsync(cancellationToken);
 
         return [.. rows.Select(row => new CountryRef(row.Id, row.Slug.Value, row.Name))];
+    }
+
+    public static async Task<List<CategoryRef>> LoadCategoriesAsync(
+        AppDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var rows = await context.Categories
+            .AsNoTracking()
+            .Select(c => new { c.Id, c.Slug, c.ParentId })
+            .ToListAsync(cancellationToken);
+
+        return [.. rows.Select(row => new CategoryRef(row.Id, row.Slug.Value, row.ParentId))];
     }
 
     public static async Task<Result<List<ResolvedFilter>, Error>> ResolveAsync(
@@ -137,6 +151,12 @@ internal static class ProductFilterResolver
 
         List<CountryRef> countries = needsCountries
             ? await LoadCountriesAsync(context, cancellationToken)
+            : [];
+
+        bool needsCategories = filters.Any(f => f.GroupKey == ProductFilter.CategoryKey);
+
+        List<CategoryRef> categories = needsCategories
+            ? await LoadCategoriesAsync(context, cancellationToken)
             : [];
 
         HashSet<string> knownPackagings = [];
@@ -230,6 +250,30 @@ internal static class ProductFilterResolver
                 continue;
             }
 
+            if (filter.GroupKey == ProductFilter.CategoryKey)
+            {
+                List<Guid> ids = [];
+
+                foreach (string categorySlug in filter.ValueKeys)
+                {
+                    CategoryRef? category = categories.Find(c => c.Slug == categorySlug);
+
+                    if (category is null)
+                        return DomainErrors.Products.UnknownFilterValue(filter.GroupKey, categorySlug);
+
+                    // Выбор раздела включает его подразделы: товары лежат в листьях,
+                    // и «Засоби захисту рослин» без детей вернул бы пусто.
+                    ids.Add(category.Id);
+                    ids.AddRange(categories
+                        .Where(child => child.ParentId == category.Id)
+                        .Select(child => child.Id));
+                }
+
+                resolved.Add(ResolvedFilter.ByIds(
+                    filter.GroupKey, ResolvedFilterKind.Categories, ids));
+                continue;
+            }
+
             return DomainErrors.Products.UnknownFilter(filter.GroupKey);
         }
 
@@ -238,7 +282,7 @@ internal static class ProductFilterResolver
 
     public static IQueryable<ProductVariant> MatchingVariants(
         AppDbContext context,
-        List<Guid> subtreeIds,
+        IReadOnlyList<Guid>? subtreeIds,
         IEnumerable<ResolvedFilter> filters,
         decimal? priceMin,
         decimal? priceMax,
@@ -271,24 +315,32 @@ internal static class ProductFilterResolver
 
     private static IQueryable<Guid> MatchingProductIds(
         AppDbContext context,
-        List<Guid> subtreeIds,
+        IReadOnlyList<Guid>? subtreeIds,
         IEnumerable<ResolvedFilter> filters,
         SearchCriteria? search)
     {
         IQueryable<ProductAttributeValue> assignments = context.Set<ProductAttributeValue>();
 
-        IQueryable<Product> products = context.Products
-            .AsNoTracking()
-            .Where(p => subtreeIds.Contains(p.CategoryId));
+        IQueryable<Product> products = context.Products.AsNoTracking();
+
+        // null — это весь каталог: листинг вне категории.
+        if (subtreeIds is not null)
+        {
+            List<Guid> categoryIds = [.. subtreeIds];
+            products = products.Where(p => categoryIds.Contains(p.CategoryId));
+        }
 
         foreach (ResolvedFilter filter in filters)
         {
             List<Guid> ids = filter.Ids;
 
-            products = filter.Kind == ResolvedFilterKind.AttributeValues
-                ? products.Where(p => assignments.Any(
-                    a => a.ProductId == p.Id && ids.Contains(a.AttributeValueId)))
-                : products.Where(p => ids.Contains(p.ManufacturerId));
+            products = filter.Kind switch
+            {
+                ResolvedFilterKind.AttributeValues => products.Where(p => assignments.Any(
+                    a => a.ProductId == p.Id && ids.Contains(a.AttributeValueId))),
+                ResolvedFilterKind.Categories => products.Where(p => ids.Contains(p.CategoryId)),
+                _ => products.Where(p => ids.Contains(p.ManufacturerId))
+            };
         }
 
         if (search is not null)

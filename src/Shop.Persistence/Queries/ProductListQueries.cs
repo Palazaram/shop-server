@@ -35,16 +35,21 @@ internal sealed class ProductListQueries(AppDbContext context, ImageUrlOptions i
         if (sort == SortRelevance && !hasSearch)
             return DomainErrors.Products.RelevanceSortRequiresSearch();
 
-        // Поддерево: категория и её прямые дети. Опирается на ограничение глубины двумя уровнями.
-        var nodes = await context.Categories.AsNoTracking()
-            .Where(c => c.Id == query.CategoryId || c.ParentId == query.CategoryId)
-            .Select(c => new { c.Id })
-            .ToListAsync(cancellationToken);
+        List<Guid>? subtreeIds = null;
 
-        if (!nodes.Exists(n => n.Id == query.CategoryId))
-            return DomainErrors.Categories.NotFound();
+        if (query.CategoryId is Guid categoryId)
+        {
+            // Поддерево: категория и её прямые дети. Опирается на ограничение глубины двумя уровнями.
+            var nodes = await context.Categories.AsNoTracking()
+                .Where(c => c.Id == categoryId || c.ParentId == categoryId)
+                .Select(c => new { c.Id })
+                .ToListAsync(cancellationToken);
 
-        List<Guid> subtreeIds = [.. nodes.Select(n => n.Id)];
+            if (!nodes.Exists(n => n.Id == categoryId))
+                return DomainErrors.Categories.NotFound();
+
+            subtreeIds = [.. nodes.Select(n => n.Id)];
+        }
 
         Result<List<ResolvedFilter>, Error> resolvedFilters = await ProductFilterResolver
             .ResolveAsync(context, query.Filters.Filters, cancellationToken);

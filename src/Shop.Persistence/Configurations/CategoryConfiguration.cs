@@ -46,11 +46,9 @@ internal sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .IsUnique()
             .HasFilter("parent_id IS NULL");
 
-        builder.HasIndex(c => new { c.ParentId, c.Slug })
-            .IsUnique();
-
+        // Слаг попадает в адрес страницы, поэтому уникален во всей таблице, а не среди соседей:
+        // два раздела с одним слагом означали бы два разных содержимого по одному URL.
         builder.HasIndex(c => c.Slug)
-            .IsUnique()
-            .HasFilter("parent_id IS NULL");
+            .IsUnique();
     }
 }

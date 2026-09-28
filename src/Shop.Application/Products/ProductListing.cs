@@ -9,6 +9,7 @@ public sealed record ProductFilter(string GroupKey, IReadOnlyList<string> ValueK
     public const string ManufacturerKey = "manufacturer";
     public const string CountryKey = "country";
     public const string PackagingKey = "packaging";
+    public const string CategoryKey = "category";
 }
 
 public sealed record ProductFilterSet(
@@ -30,7 +31,7 @@ public sealed record ProductFilterSet(
 }
 
 public sealed record ProductListQuery(
-    Guid CategoryId,
+    Guid? CategoryId,
     ProductFilterSet Filters,
     string? Sort,
     int Page,

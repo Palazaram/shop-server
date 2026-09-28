@@ -149,7 +149,7 @@ public static class DomainErrors
 
         public static Error SlugAlreadyExists()
             => Error.Conflict("category.slug.already_exists",
-                "A category with this slug already exists at this level");
+                "A category with this slug already exists");
 
         public static Error SlugCannotBeGenerated()
             => Error.Validation("category.slug.cannot_be_generated",

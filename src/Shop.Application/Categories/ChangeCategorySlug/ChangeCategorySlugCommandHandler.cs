@@ -30,7 +30,7 @@ internal sealed class ChangeCategorySlugCommandHandler(
 
         // Исключаем саму категорию: повтор её же слага — не конфликт, а пустая операция.
         if (await categoryRepository.ExistsBySlugAsync(
-                slugResult.Value, category.ParentId, category.Id, cancellationToken))
+                slugResult.Value, category.Id, cancellationToken))
             return DomainErrors.Categories.SlugAlreadyExists();
 
         category.ChangeSlug(slugResult.Value);
