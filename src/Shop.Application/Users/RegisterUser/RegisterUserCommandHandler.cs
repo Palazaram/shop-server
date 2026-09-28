@@ -33,7 +33,7 @@ internal sealed class RegisterUserCommandHandler(
         if (existsByEmail)
             return DomainErrors.Users.EmailAlreadyExists();
 
-        var existsByPhone = await userRepository.ExistsByPhoneAsync(phoneResult.Value, cancellationToken);
+        var existsByPhone = await userRepository.ExistsByPhoneAsync(phoneResult.Value, null, cancellationToken);
         if (existsByPhone)
             return DomainErrors.Users.PhoneAlreadyExists();
 

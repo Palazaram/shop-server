@@ -6,6 +6,7 @@ using Shop.Application.ProductAttributes;
 using Shop.Application.Products;
 using Shop.Application.Catalog;
 using Shop.Application.Specifications;
+using Shop.Application.Users;
 using Shop.Application.ProductVariants;
 using Shop.Domain.Abstractions;
 using Shop.Domain.AttributeValues;
@@ -56,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<ISpecificationQueries, SpecificationQueries>();
         services.AddScoped<ISitemapQueries, SitemapQueries>();
         services.AddScoped<ISlugHistoryQueries, SlugHistoryQueries>();
+        services.AddScoped<IUserQueries, UserQueries>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);

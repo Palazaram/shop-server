@@ -39,14 +39,33 @@ public static class ValidationExtensions
     public static IRuleBuilderOptions<T, Guid?> NotEmptyId<T>(this IRuleBuilder<T, Guid?> rule)
         => rule.Must(id => id.HasValue && id.Value != Guid.Empty);
 
+    /// <summary>
+    /// Длина и алфавит, больше ничего. Требования к составу («обязательна заглавная»,
+    /// «обязательна цифра») сняты намеренно: они заставляют писать Lopata1 вместо длинной
+    /// понятной фразы, то есть дают предсказуемый шаблон вместо стойкости.
+    /// <para>
+    /// Верхняя граница — не придирка: bcrypt использует не более 72 байт пароля, остальное
+    /// в хеш не попадает. Без ограничения человек с длинной фразой мог бы ошибиться в её конце
+    /// и всё равно войти.
+    /// </para>
+    /// <para>
+    /// Алфавит — печатаемый ASCII без пробела: латиница, цифры, знаки препинания. Кириллица
+    /// запрещена намеренно: такой пароль не ввести там, где нет раскладки — на чужом
+    /// компьютере или с иностранной клавиатуры телефона. Пробел запрещён заодно: невидимый
+    /// пробел, прилипший при копировании, даёт «ввожу правильно, но не пускает».
+    /// </para>
+    /// </summary>
     public static IRuleBuilderOptions<T, string?> ValidPassword<T>(this IRuleBuilder<T, string?> rule)
     {
         const int minLength = 8;
+        const int maxLength = 64;
+        const string printableAsciiNoSpace = "^[!-~]+$";
 
         return rule
             .NotEmpty().WithError(DomainErrors.Users.PasswordIsRequired())
             .MinimumLength(minLength).WithError(DomainErrors.Users.PasswordTooShort(minLength))
-            .Matches("[A-Z]").WithError(DomainErrors.Users.PasswordMissingUppercase())
-            .Matches("[0-9]").WithError(DomainErrors.Users.PasswordMissingDigit());
+            .MaximumLength(maxLength).WithError(DomainErrors.Users.PasswordTooLong(maxLength))
+            .Matches(printableAsciiNoSpace)
+                .WithError(DomainErrors.Users.PasswordHasUnsupportedCharacters());
     }
 }

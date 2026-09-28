@@ -70,6 +70,16 @@ public static class DomainErrors
             => Error.Conflict("user.phone.already_exists",
                 "A user with this phone number already exists");
 
+        public static Error NotFound()
+            => Error.NotFound("user.not_found", "User not found");
+
+        /// <summary>
+        /// Текущий пароль приходит в теле, значит 400. Отдельный код от входа: здесь
+        /// пользователь уже опознан, и скрывать, что именно не сошлось, не от кого.
+        /// </summary>
+        public static Error CurrentPasswordIsWrong()
+            => Error.Validation("user.current_password.invalid", "Current password is wrong");
+
         public static Error PasswordIsRequired()
             => Error.Validation("user.password.required", "Password is required");
 
@@ -77,13 +87,14 @@ public static class DomainErrors
             => Error.Validation("user.password.min_length",
                 $"Password must be at least {minLength} characters long");
 
-        public static Error PasswordMissingUppercase()
-            => Error.Validation("user.password.missing_uppercase",
-                "Password must contain at least one uppercase letter");
+        public static Error PasswordTooLong(int maxLength)
+            => Error.Validation("user.password.max_length",
+                $"Password must not exceed {maxLength} characters");
 
-        public static Error PasswordMissingDigit()
-            => Error.Validation("user.password.missing_digit",
-                "Password must contain at least one digit");
+        public static Error PasswordHasUnsupportedCharacters()
+            => Error.Validation("user.password.unsupported_characters",
+                "Password may contain latin letters, digits and punctuation only, without spaces");
+
     }
 
     public static class RefreshTokens

@@ -11,8 +11,18 @@ internal sealed class UserRepository(AppDbContext context) : IUserRepository
     public Task<bool> ExistsByEmailAsync(Email email, CancellationToken cancellationToken = default)
         => context.Users.AnyAsync(u => u.Email == email, cancellationToken);
 
-    public Task<bool> ExistsByPhoneAsync(Phone phone, CancellationToken cancellationToken = default)
-        => context.Users.AnyAsync(u => u.Phone == phone, cancellationToken);
+    public Task<bool> ExistsByPhoneAsync(
+        Phone phone,
+        Guid? excludeUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<User> query = context.Users.Where(u => u.Phone == phone);
+
+        if (excludeUserId.HasValue)
+            query = query.Where(u => u.Id != excludeUserId.Value);
+
+        return query.AnyAsync(cancellationToken);
+    }
 
     public async Task<Maybe<User>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => await context.Users.FindAsync([id], cancellationToken);
