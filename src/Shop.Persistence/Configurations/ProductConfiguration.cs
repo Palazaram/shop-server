@@ -51,7 +51,15 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Navigation(p => p.Images)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasMany(p => p.Specifications)
+            .WithOne()
+            .HasForeignKey(ps => ps.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Navigation(p => p.AttributeValues)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(p => p.Specifications)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(p => new { p.ManufacturerId, p.Name })

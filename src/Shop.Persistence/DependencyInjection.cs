@@ -4,6 +4,7 @@ using Shop.Application.Countries;
 using Shop.Application.Manufacturers;
 using Shop.Application.ProductAttributes;
 using Shop.Application.Products;
+using Shop.Application.Specifications;
 using Shop.Application.ProductVariants;
 using Shop.Domain.Abstractions;
 using Shop.Domain.AttributeValues;
@@ -14,6 +15,7 @@ using Shop.Domain.ProductAttributes;
 using Shop.Domain.Products;
 using Shop.Domain.ProductVariants;
 using Shop.Domain.RefreshTokens;
+using Shop.Domain.Specifications;
 using Shop.Domain.Users;
 using Shop.Persistence.Queries;
 using Shop.Persistence.Repositories;
@@ -38,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
         services.AddScoped<IAttributeValueRepository, AttributeValueRepository>();
         services.AddScoped<ICountryRepository, CountryRepository>();
+        services.AddScoped<ISpecificationRepository, SpecificationRepository>();
 
         services.AddScoped<IManufacturerQueries, ManufacturerQueries>();
         services.AddScoped<ICategoryQueries, CategoryQueries>();
@@ -47,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IProductListQueries, ProductListQueries>();
         services.AddScoped<IProductFilterQueries, ProductFilterQueries>();
         services.AddScoped<ICountryQueries, CountryQueries>();
+        services.AddScoped<ISpecificationQueries, SpecificationQueries>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);

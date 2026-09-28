@@ -9,6 +9,7 @@ using Shop.Domain.ProductAttributes;
 using Shop.Domain.Products;
 using Shop.Domain.ProductVariants;
 using Shop.Domain.RefreshTokens;
+using Shop.Domain.Specifications;
 using Shop.Domain.Roles;
 using Shop.Domain.Users;
 using Shop.Persistence.Exceptions;
@@ -30,6 +31,7 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<ProductAttribute> ProductAttributes => Set<ProductAttribute>();
     public DbSet<AttributeValue> AttributeValues => Set<AttributeValue>();
     public DbSet<Country> Countries => Set<Country>();
+    public DbSet<Specification> Specifications => Set<Specification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -9,6 +9,7 @@ public sealed class Product : AggregateRoot<Guid>
 {
     private readonly List<ProductAttributeValue> _attributeValues = [];
     private readonly List<ProductImage> _images = [];
+    private readonly List<ProductSpecification> _specifications = [];
 
     public const int MaxNameLength = 200;
     public const int MaxDescriptionLength = 4000;
@@ -36,6 +37,7 @@ public sealed class Product : AggregateRoot<Guid>
     public bool IsFeatured { get; private set; }
     public IReadOnlyList<ProductAttributeValue> AttributeValues => _attributeValues;
     public IReadOnlyList<ProductImage> Images => _images;
+    public IReadOnlyList<ProductSpecification> Specifications => _specifications;
 
     public static Result<Product, Error> Create(
         string? name,
@@ -121,6 +123,40 @@ public sealed class Product : AggregateRoot<Guid>
 
         foreach (Guid valueId in valueIds)
             _attributeValues.Add(new ProductAttributeValue(Id, valueId));
+
+        return default;
+    }
+
+    /// <summary>
+    /// Набор задаётся целиком: пустой список снимает все характеристики. Порядок показа
+    /// хранится в справочнике, а не здесь, — иначе его пришлось бы держать одинаковым
+    /// у каждого товара.
+    /// </summary>
+    public UnitResult<Error> SetSpecifications(IReadOnlyList<SpecificationValue> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        if (values.Any(value => value.SpecificationId == Guid.Empty))
+            throw new ArgumentException(
+                "Specification id must not be empty.", nameof(values));
+
+        if (values.Select(value => value.SpecificationId).Distinct().Count() != values.Count)
+            return DomainErrors.Products.DuplicateSpecification();
+
+        List<ProductSpecification> replacement = [];
+
+        foreach (SpecificationValue value in values)
+        {
+            Result<string, Error> normalized = NormalizeSpecificationValue(value.Value);
+            if (normalized.IsFailure)
+                return normalized.Error;
+
+            replacement.Add(new ProductSpecification(
+                Id, value.SpecificationId, normalized.Value));
+        }
+
+        _specifications.Clear();
+        _specifications.AddRange(replacement);
 
         return default;
     }
@@ -230,6 +266,20 @@ public sealed class Product : AggregateRoot<Guid>
 
         if (normalized.Length > MaxDescriptionLength)
             return DomainErrors.Products.DescriptionTooLong(MaxDescriptionLength);
+
+        return normalized;
+    }
+
+    private static Result<string, Error> NormalizeSpecificationValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return DomainErrors.Products.SpecificationValueIsRequired();
+
+        string normalized = value.CollapseWhitespace();
+
+        if (normalized.Length > ProductSpecification.MaxValueLength)
+            return DomainErrors.Products.SpecificationValueTooLong(
+                ProductSpecification.MaxValueLength);
 
         return normalized;
     }

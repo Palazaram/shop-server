@@ -16,6 +16,11 @@ internal sealed class ProductRepository(AppDbContext context) : IProductReposito
             .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
+    public async Task<Maybe<Product>> GetByIdWithSpecificationsAsync(Guid id, CancellationToken cancellationToken = default)
+        => await context.Products
+            .Include(p => p.Specifications)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
     public Task<bool> ExistsByNameAsync(
         string name,
         Guid manufacturerId,

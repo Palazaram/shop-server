@@ -53,6 +53,9 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
         IReadOnlyList<ProductImageResponse> images =
             await LoadImagesAsync(row.ProductId, cancellationToken);
 
+        IReadOnlyList<ProductSpecificationResponse> specifications =
+            await LoadSpecificationsAsync(row.ProductId, cancellationToken);
+
         return new ProductVariantDetailResponse(
             row.Id,
             row.Slug.Value,
@@ -68,6 +71,7 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
             row.StockQuantity,
             row.StockQuantity > 0,
             images,
+            specifications,
             otherPackagings);
     }
 
@@ -104,6 +108,49 @@ internal sealed class ProductVariantQueries(AppDbContext context, ImageUrlOption
                 v.StockQuantity,
                 v.StockQuantity > 0))
             .ToList();
+    }
+
+    /// <summary>
+    /// Сначала атрибуты, потом характеристики. Порядок атрибутов — по имени: тонкая настройка
+    /// порядка живёт в привязке к категории и нужна сайдбару, а карточке достаточно
+    /// предсказуемости. Характеристики идут в порядке справочника.
+    /// </summary>
+    private async Task<IReadOnlyList<ProductSpecificationResponse>> LoadSpecificationsAsync(
+        Guid productId,
+        CancellationToken cancellationToken)
+    {
+        var attributeRows = await (
+            from link in context.Set<ProductAttributeValue>().AsNoTracking()
+            join value in context.AttributeValues on link.AttributeValueId equals value.Id
+            join attribute in context.ProductAttributes on value.AttributeId equals attribute.Id
+            where link.ProductId == productId
+            select new { AttributeName = attribute.Name, ValueName = value.Name })
+            .ToListAsync(cancellationToken);
+
+        var specificationRows = await (
+            from link in context.Set<ProductSpecification>().AsNoTracking()
+            join specification in context.Specifications
+                on link.SpecificationId equals specification.Id
+            where link.ProductId == productId
+            orderby specification.DisplayOrder
+            select new { specification.Name, link.Value })
+            .ToListAsync(cancellationToken);
+
+        return
+        [
+            // У одного атрибута значений может быть несколько — две действующие речовини
+            // в строке лучше, чем две строки с одинаковым именем.
+            .. attributeRows
+                .GroupBy(row => row.AttributeName)
+                .OrderBy(group => group.Key, TextComparers.Ukrainian)
+                .Select(group => new ProductSpecificationResponse(
+                    group.Key,
+                    string.Join(", ", group
+                        .Select(row => row.ValueName)
+                        .OrderBy(name => name, TextComparers.Ukrainian)))),
+            .. specificationRows.Select(row =>
+                new ProductSpecificationResponse(row.Name, row.Value))
+        ];
     }
 
     private async Task<IReadOnlyList<ProductImageResponse>> LoadImagesAsync(Guid productId, CancellationToken cancellationToken)

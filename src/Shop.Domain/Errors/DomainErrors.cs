@@ -323,6 +323,30 @@ public static class DomainErrors
             => Error.Validation("product.attribute_values.invalid_id",
                 "Attribute value id must not be empty");
 
+        public static Error SpecificationsAreRequired()
+            => Error.Validation("product.specifications.required",
+                "Specifications are required");
+
+        public static Error SpecificationIdIsInvalid()
+            => Error.Validation("product.specifications.invalid_id",
+                "Specification id must not be empty");
+
+        public static Error DuplicateSpecification()
+            => Error.Validation("product.specifications.duplicate",
+                "The same specification is listed more than once");
+
+        public static Error SpecificationNotFound()
+            => Error.Validation("product.specifications.not_found",
+                "One of the specifications does not exist");
+
+        public static Error SpecificationValueIsRequired()
+            => Error.Validation("product.specifications.value_required",
+                "Specification value is required");
+
+        public static Error SpecificationValueTooLong(int maxLength)
+            => Error.Validation("product.specifications.value_max_length",
+                $"Specification value must not exceed {maxLength} characters");
+
         public static Error DuplicateAttributeValue()
             => Error.Validation("product.attribute_values.duplicate",
                 "The same attribute value is listed more than once");
@@ -520,5 +544,44 @@ public static class DomainErrors
         public static Error GeneratedSlugAlreadyExists()
             => Error.Conflict("attribute_value.slug.generated_conflict",
                 "This attribute already has a value with the automatically generated slug, provide a slug explicitly");
+    }
+
+    public static class Specifications
+    {
+        public static Error NameIsRequired()
+            => Error.Validation("specification.name.required", "Specification name is required");
+
+        public static Error NameTooLong(int maxLength)
+            => Error.Validation("specification.name.max_length",
+                $"Specification name must not exceed {maxLength} characters");
+
+        public static Error NameAlreadyExists()
+            => Error.Conflict("specification.name.already_exists",
+                "A specification with this name already exists");
+
+        public static Error NotFound()
+            => Error.NotFound("specification.not_found", "Specification not found");
+
+        public static Error OrderIsRequired()
+            => Error.Validation("specification.order.required", "Specification ids are required");
+
+        public static Error IdIsInvalid()
+            => Error.Validation("specification.order.invalid_id",
+                "Specification id must not be empty");
+
+        public static Error DuplicateInOrder()
+            => Error.Validation("specification.order.duplicate",
+                "The same specification is listed more than once");
+
+        /// <summary>
+        /// Идентификатор приходит в теле, а не в адресе, поэтому 400, а не 404.
+        /// </summary>
+        public static Error UnknownIdInOrder(Guid specificationId)
+            => Error.Validation("specification.order.unknown_id",
+                $"Specification '{specificationId}' does not exist");
+
+        public static Error OrderIsIncomplete(int expectedCount)
+            => Error.Validation("specification.order.incomplete",
+                $"The order must list all {expectedCount} specifications");
     }
 }

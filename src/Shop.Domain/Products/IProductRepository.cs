@@ -8,6 +8,8 @@ public interface IProductRepository
     
     Task<Maybe<Product>> GetByIdWithImagesAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<Maybe<Product>> GetByIdWithSpecificationsAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<bool> ExistsByNameAsync(
         string name,
         Guid manufacturerId,

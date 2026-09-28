@@ -7,6 +7,7 @@ using Shop.Application.Products;
 using Shop.Application.Products.CreateProduct;
 using Shop.Application.Products.SetProductAttributeValues;
 using Shop.Application.Products.SetProductFeatured;
+using Shop.Application.Products.SetProductSpecifications;
 using Shop.Application.Products.UpdateProduct;
 using Shop.Application.ProductVariants;
 using Shop.Application.ProductVariants.CreateProductVariant;
@@ -23,6 +24,7 @@ public sealed class ProductsController(
     ICommandHandler<CreateProductVariantCommand, CreateProductVariantResponse> createVariantHandler,
     ICommandHandler<SetProductAttributeValuesCommand> setAttributeValuesHandler,
     ICommandHandler<SetProductFeaturedCommand> setFeaturedHandler,
+    ICommandHandler<SetProductSpecificationsCommand> setSpecificationsHandler,
     IProductQueries productQueries,
     IProductVariantQueries variantQueries)
     : ApiControllerBase
@@ -141,6 +143,23 @@ public sealed class ProductsController(
         return result.HasNoValue
             ? ToActionResult(DomainErrors.Products.NotFound())
             : Ok(result.Value);
+    }
+
+    [HttpPut("{productId:guid}/specifications")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetSpecifications(
+        Guid productId,
+        SetProductSpecificationsRequest request,
+        CancellationToken cancellationToken)
+    {
+        SetProductSpecificationsCommand command = new(productId, request.Specifications);
+
+        UnitResult<Error> result =
+            await setSpecificationsHandler.HandleAsync(command, cancellationToken);
+
+        return HandleResult(result);
     }
 
     [HttpPut("{productId:guid}/featured")]

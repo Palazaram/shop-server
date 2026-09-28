@@ -17,6 +17,13 @@ public sealed record ProductVariantListItemResponse(
     int StockQuantity,
     bool IsInStock);
 
+/// <summary>
+/// Строка таблицы характеристик в карточке. Сюда сведены и значения атрибутов
+/// («Діюча речовина»), и характеристики из справочника («Клас токсичності»): покупателю
+/// всё равно, что из этого участвует в фильтрах.
+/// </summary>
+public sealed record ProductSpecificationResponse(string Name, string Value);
+
 public sealed record ProductVariantDetailResponse(
     Guid Id,
     string Slug,
@@ -32,6 +39,7 @@ public sealed record ProductVariantDetailResponse(
     int StockQuantity,
     bool IsInStock,
     IReadOnlyList<ProductImageResponse> Images,
+    IReadOnlyList<ProductSpecificationResponse> Specifications,
     IReadOnlyList<ProductVariantListItemResponse> OtherPackagings);
 
 public interface IProductVariantQueries

@@ -125,6 +125,11 @@ internal sealed class ProductQueries(AppDbContext context) : IProductQueries
         List<Guid> pageIds,
         CancellationToken cancellationToken)
     {
+        // Пустая страница — законный ответ фильтра, и спрашивать у базы счётчики
+        // для пустого списка незачем.
+        if (pageIds.Count == 0)
+            return [];
+
         var counted = await productIds
             .Where(id => pageIds.Contains(id))
             .GroupBy(id => id)
