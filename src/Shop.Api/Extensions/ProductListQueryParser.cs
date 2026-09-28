@@ -18,7 +18,8 @@ internal static class ProductListQueryParser
         | NumberStyles.AllowLeadingSign
         | NumberStyles.AllowDecimalPoint;
 
-    public static Result<ProductFilterSet, Error> ParseFilters(IQueryCollection source)
+    public static Result<ProductFilterSet, Error> ParseFilters(
+        Guid? categoryId, IQueryCollection source)
     {
         List<ProductFilter> filters = [];
 
@@ -43,6 +44,12 @@ internal static class ProductListQueryParser
 
             if (valueKeys.Length == 0)
                 continue;
+
+            // Атрибуты принадлежат категории: вне категории их не показать в сайдбаре
+            // и не снять оттуда. Применить молча — значит оставить фильтр,
+            // существующий только в адресной строке.
+            if (isAttribute && categoryId is null)
+                return DomainErrors.Products.AttributeFilterOutsideCategory(pair.Key);
 
             filters.Add(new ProductFilter(pair.Key, valueKeys));
         }
@@ -73,7 +80,7 @@ internal static class ProductListQueryParser
 
     public static Result<ProductListQuery, Error> Build(Guid? categoryId, IQueryCollection source)
     {
-        Result<ProductFilterSet, Error> filters = ParseFilters(source);
+        Result<ProductFilterSet, Error> filters = ParseFilters(categoryId, source);
 
         if (filters.IsFailure)
             return filters.Error;

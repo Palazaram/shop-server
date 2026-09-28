@@ -35,7 +35,8 @@ public sealed class CatalogController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetFilters(CancellationToken cancellationToken)
     {
-        Result<ProductFilterSet, Error> filters = ProductListQueryParser.ParseFilters(Request.Query);
+        Result<ProductFilterSet, Error> filters =
+            ProductListQueryParser.ParseFilters(categoryId: null, Request.Query);
 
         if (filters.IsFailure)
             return ToActionResult(filters.Error);

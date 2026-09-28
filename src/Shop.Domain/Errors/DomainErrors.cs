@@ -341,6 +341,10 @@ public static class DomainErrors
             => Error.Validation("product.filter.unknown_value",
                 $"Filter '{attributeSlug}' has no value '{valueSlug}'");
 
+        public static Error AttributeFilterOutsideCategory(string groupKey)
+            => Error.Validation("product.filter.requires_category",
+                $"Filter '{groupKey}' is only available inside a category");
+
         public static Error UnknownSort(string sort)
             => Error.Validation("product.sort.unknown",
                 $"Unknown sort order '{sort}'");

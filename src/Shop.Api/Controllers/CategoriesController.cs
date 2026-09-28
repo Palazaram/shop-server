@@ -137,7 +137,8 @@ public sealed class CategoriesController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetFilters(Guid categoryId, CancellationToken cancellationToken)
     {
-        Result<ProductFilterSet, Error> filters = ProductListQueryParser.ParseFilters(Request.Query);
+        Result<ProductFilterSet, Error> filters =
+            ProductListQueryParser.ParseFilters(categoryId, Request.Query);
 
         if (filters.IsFailure)
             return ToActionResult(filters.Error);
