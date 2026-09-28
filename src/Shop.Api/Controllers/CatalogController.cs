@@ -6,6 +6,7 @@ using Shop.Application.Catalog;
 using Shop.Application.Categories;
 using Shop.Application.Products;
 using Shop.Domain.Errors;
+using Shop.Domain.SlugHistory;
 
 namespace Shop.Api.Controllers;
 
@@ -15,7 +16,8 @@ public sealed class CatalogController(
     IProductListQueries productListQueries,
     IProductFilterQueries productFilterQueries,
     ICategoryQueries categoryQueries,
-    ISitemapQueries sitemapQueries) : ApiControllerBase
+    ISitemapQueries sitemapQueries,
+    ISlugHistoryQueries slugHistoryQueries) : ApiControllerBase
 {
     [HttpGet("categories/{slug}")]
     [ProducesResponseType<CategoryHeaderResponse>(StatusCodes.Status200OK)]
@@ -25,9 +27,15 @@ public sealed class CatalogController(
         Maybe<CategoryHeaderResponse> result =
             await categoryQueries.GetBySlugAsync(slug, cancellationToken);
 
-        return result.HasNoValue
-            ? ToActionResult(DomainErrors.Categories.NotFound())
-            : Ok(result.Value);
+        if (result.HasValue)
+            return Ok(result.Value);
+
+        Maybe<string> movedTo = await slugHistoryQueries.FindCurrentSlugAsync(
+            SlugOwnerType.Category, slug, cancellationToken);
+
+        return movedTo.HasValue
+            ? MovedSlug(DomainErrors.Categories.SlugMoved(), movedTo.Value)
+            : ToActionResult(DomainErrors.Categories.NotFound());
     }
 
     [HttpGet("sitemap")]

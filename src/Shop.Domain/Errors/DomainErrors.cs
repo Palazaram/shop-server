@@ -160,6 +160,14 @@ public static class DomainErrors
             => Error.Validation("category.meta_description.max_length",
                 $"Meta description must not exceed {maxLength} characters");
 
+        /// <summary>
+        /// Адрес существовал раньше и сменился. 404, а не 301: редирект посетителю отдаёт фронт,
+        /// он же общается с поисковиком, — а API лишь называет новый адрес.
+        /// </summary>
+        public static Error SlugMoved()
+            => Error.NotFound("category.slug.moved",
+                "This category address has changed");
+
         public static Error SlugCannotBeGenerated()
             => Error.Validation("category.slug.cannot_be_generated",
                 "Could not generate a slug from the category name, provide it explicitly");
@@ -480,6 +488,10 @@ public static class DomainErrors
         public static Error SkuAlreadyExists()
             => Error.Conflict("product_variant.sku.already_exists",
                 "A variant with this SKU already exists");
+
+        public static Error SlugMoved()
+            => Error.NotFound("product_variant.slug.moved",
+                "This product address has changed");
 
         public static Error SlugAlreadyExists()
             => Error.Conflict("product_variant.slug.already_exists",

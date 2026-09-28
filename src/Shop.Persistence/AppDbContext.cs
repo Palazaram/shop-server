@@ -9,6 +9,7 @@ using Shop.Domain.ProductAttributes;
 using Shop.Domain.Products;
 using Shop.Domain.ProductVariants;
 using Shop.Domain.RefreshTokens;
+using Shop.Domain.SlugHistory;
 using Shop.Domain.Specifications;
 using Shop.Domain.Roles;
 using Shop.Domain.Users;
@@ -32,6 +33,7 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<AttributeValue> AttributeValues => Set<AttributeValue>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<Specification> Specifications => Set<Specification>();
+    public DbSet<SlugHistoryEntry> SlugHistory => Set<SlugHistoryEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

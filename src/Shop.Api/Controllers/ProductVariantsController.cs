@@ -5,8 +5,10 @@ using Shop.Application.Abstractions;
 using Shop.Application.ProductVariants;
 using Shop.Application.ProductVariants.ChangeProductVariantSlug;
 using Shop.Application.ProductVariants.UpdateProductVariant;
+using Shop.Application.Catalog;
 using Shop.Domain.Errors;
 using Shop.Domain.Roles;
+using Shop.Domain.SlugHistory;
 
 namespace Shop.Api.Controllers;
 
@@ -15,7 +17,8 @@ namespace Shop.Api.Controllers;
 public sealed class ProductVariantsController(
     ICommandHandler<UpdateProductVariantCommand> updateVariantHandler,
     ICommandHandler<ChangeProductVariantSlugCommand> changeSlugHandler,
-    IProductVariantQueries variantQueries)
+    IProductVariantQueries variantQueries,
+    ISlugHistoryQueries slugHistoryQueries)
     : ApiControllerBase
 {
     [HttpPut("{variantId:guid}")]
@@ -49,9 +52,15 @@ public sealed class ProductVariantsController(
         Maybe<ProductVariantDetailResponse> variant =
             await variantQueries.GetBySlugAsync(slug, cancellationToken);
 
-        return variant.HasNoValue
-            ? ToActionResult(DomainErrors.ProductVariants.NotFound())
-            : Ok(variant.Value);
+        if (variant.HasValue)
+            return Ok(variant.Value);
+
+        Maybe<string> movedTo = await slugHistoryQueries.FindCurrentSlugAsync(
+            SlugOwnerType.ProductVariant, slug, cancellationToken);
+
+        return movedTo.HasValue
+            ? MovedSlug(DomainErrors.ProductVariants.SlugMoved(), movedTo.Value)
+            : ToActionResult(DomainErrors.ProductVariants.NotFound());
     }
 
     [HttpPut("{variantId:guid}/slug")]

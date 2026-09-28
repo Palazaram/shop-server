@@ -27,6 +27,19 @@ public abstract class ApiControllerBase : ControllerBase
             ? NoContent()
             : ToActionResult(result.Error);
 
+    /// <summary>
+    /// 404 с новым адресом в теле (`newSlug`). Редирект посетителю отдаёт фронт: 301 обязан
+    /// увидеть поисковик, а он ходит на фронт, не в API. Отдай мы 301 отсюда — `fetch`
+    /// проглотил бы его молча, и посетитель остался бы на старом адресе.
+    /// </summary>
+    protected IActionResult MovedSlug(Error error, string newSlug)
+    {
+        var problemDetails = error.ToProblemDetails().WithTraceId(HttpContext);
+        problemDetails.Extensions["newSlug"] = newSlug;
+
+        return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
+    }
+
     protected IActionResult ToActionResult(Error error)
     {
         var problemDetails = error.ToProblemDetails().WithTraceId(HttpContext);

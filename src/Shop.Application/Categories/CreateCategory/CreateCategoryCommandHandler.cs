@@ -4,12 +4,14 @@ using Shop.Domain.Abstractions;
 using Shop.Domain.Categories;
 using Shop.Domain.Common;
 using Shop.Domain.Errors;
+using Shop.Domain.SlugHistory;
 
 namespace Shop.Application.Categories.CreateCategory;
 
 internal sealed class CreateCategoryCommandHandler(
     ICategoryRepository categoryRepository,
     ISlugGenerator slugGenerator,
+    ISlugHistoryRepository slugHistoryRepository,
     IUnitOfWork unitOfWork) 
         : ICommandHandler<CreateCategoryCommand, CreateCategoryResponse>
 {
@@ -58,6 +60,14 @@ internal sealed class CreateCategoryCommandHandler(
         if (await categoryRepository.ExistsBySlugAsync(
                 category.Slug, null, cancellationToken))
             return DomainErrors.Categories.SlugAlreadyExists();
+
+        // Живая запись сильнее истории: адрес, который сейчас занимают, перестаёт быть
+        // перенаправлением. Иначе один слаг вёл бы и к новому владельцу, и к старому.
+        Maybe<SlugHistoryEntry> occupied = await slugHistoryRepository.FindAsync(
+            SlugOwnerType.Category, category.Slug, cancellationToken);
+
+        if (occupied.HasValue)
+            slugHistoryRepository.Remove(occupied.Value);
 
         categoryRepository.Add(category);
         await unitOfWork.SaveChangesAsync(cancellationToken);

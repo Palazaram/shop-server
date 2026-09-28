@@ -5,6 +5,7 @@ using Shop.Domain.Common;
 using Shop.Domain.Errors;
 using Shop.Domain.ProductVariants;
 using Shop.Domain.Products;
+using Shop.Domain.SlugHistory;
 
 namespace Shop.Application.ProductVariants.CreateProductVariant;
 
@@ -12,6 +13,7 @@ internal sealed class CreateProductVariantCommandHandler(
     IProductVariantRepository variantRepository,
     IProductRepository productRepository,
     ISlugGenerator slugGenerator,
+    ISlugHistoryRepository slugHistoryRepository,
     IUnitOfWork unitOfWork)
         : ICommandHandler<CreateProductVariantCommand, CreateProductVariantResponse>
 {
@@ -76,6 +78,14 @@ internal sealed class CreateProductVariantCommandHandler(
             return slugProvided
                 ? DomainErrors.ProductVariants.SlugAlreadyExists()
                 : DomainErrors.ProductVariants.GeneratedSlugAlreadyExists();
+
+        // Живая запись сильнее истории: адрес, который сейчас занимают, перестаёт быть
+        // перенаправлением. Иначе один слаг вёл бы и к новому владельцу, и к старому.
+        Maybe<SlugHistoryEntry> occupied = await slugHistoryRepository.FindAsync(
+            SlugOwnerType.ProductVariant, variant.Slug, cancellationToken);
+
+        if (occupied.HasValue)
+            slugHistoryRepository.Remove(occupied.Value);
 
         variantRepository.Add(variant);
         await unitOfWork.SaveChangesAsync(cancellationToken);
