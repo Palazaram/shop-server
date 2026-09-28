@@ -313,7 +313,11 @@ internal static class ProductFilterResolver
         return variants;
     }
 
-    private static IQueryable<Guid> MatchingProductIds(
+    /// <summary>
+    /// Товары под набор фильтров: тем же кодом пользуется админский список, которому фасовки
+    /// не нужны вовсе.
+    /// </summary>
+    public static IQueryable<Guid> MatchingProductIds(
         AppDbContext context,
         IReadOnlyList<Guid>? subtreeIds,
         IEnumerable<ResolvedFilter> filters,

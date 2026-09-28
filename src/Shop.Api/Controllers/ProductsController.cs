@@ -1,6 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shop.Api.Extensions;
 using Shop.Application.Abstractions;
 using Shop.Application.Products;
 using Shop.Application.Products.CreateProduct;
@@ -26,6 +27,23 @@ public sealed class ProductsController(
     IProductVariantQueries variantQueries)
     : ApiControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType<AdminProductListResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    {
+        Result<AdminProductListQuery, Error> query =
+            ProductListQueryParser.BuildAdmin(Request.Query);
+
+        if (query.IsFailure)
+            return ToActionResult(query.Error);
+
+        Result<AdminProductListResponse, Error> result =
+            await productQueries.ListAsync(query.Value, cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : ToActionResult(result.Error);
+    }
+
     [HttpPost]
     [ProducesResponseType<CreateProductResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

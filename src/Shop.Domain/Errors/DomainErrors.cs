@@ -356,6 +356,10 @@ public static class DomainErrors
             => Error.Validation("product.filter.invalid_price",
                 $"Parameter '{key}' is not a valid price: '{value}'");
 
+        public static Error InvalidFeaturedFilter(string value)
+            => Error.Validation("product.filter.invalid_featured",
+                $"Parameter 'featured' must be true or false: '{value}'");
+
         public static Error TooManyImages(int maxImages)
             => Error.Validation("product.images.too_many",
                 $"A product can have at most {maxImages} images");

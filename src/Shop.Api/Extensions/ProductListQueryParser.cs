@@ -37,10 +37,7 @@ internal static class ProductListQueryParser
             if (!isAttribute && !isFixed)
                 continue;
 
-            string[] valueKeys = [.. pair.Value
-                .SelectMany(raw => (raw ?? string.Empty).Split(
-                    ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                .Distinct(StringComparer.Ordinal)];
+            string[] valueKeys = SplitValues(pair.Value);
 
             if (valueKeys.Length == 0)
                 continue;
@@ -85,15 +82,49 @@ internal static class ProductListQueryParser
         if (filters.IsFailure)
             return filters.Error;
 
-        int page = int.TryParse(source["page"], NumberStyles.Integer, CultureInfo.InvariantCulture,
-            out int parsedPage) && parsedPage > 0 ? parsedPage : 1;
+        return new ProductListQuery(
+            categoryId,
+            filters.Value,
+            source["sort"],
+            ReadPage(source),
+            ReadPageSize(source, ProductListQuery.DefaultPageSize, ProductListQuery.MaxPageSize));
+    }
 
-        int pageSize = int.TryParse(source["pageSize"], NumberStyles.Integer,
-            CultureInfo.InvariantCulture, out int parsedSize)
-            ? Math.Clamp(parsedSize, 1, ProductListQuery.MaxPageSize)
-            : ProductListQuery.DefaultPageSize;
+    /// <summary>
+    /// Разбор админского списка. Общий <see cref="ParseFilters"/> здесь не годится: в нём живут
+    /// фасовка и цена, а список показывает препараты — такой фильтр было бы нечем применить,
+    /// и он молча пропал бы.
+    /// </summary>
+    public static Result<AdminProductListQuery, Error> BuildAdmin(IQueryCollection source)
+    {
+        string search = source[ProductFilterSet.SearchKey].ToString().Trim();
 
-        return new ProductListQuery(categoryId, filters.Value, source["sort"], page, pageSize);
+        if (search.Length > 0 && search.Length < ProductFilterSet.MinSearchLength)
+            return DomainErrors.Products.SearchTooShort(ProductFilterSet.MinSearchLength);
+
+        if (search.Length > ProductFilterSet.MaxSearchLength)
+            return DomainErrors.Products.SearchTooLong(ProductFilterSet.MaxSearchLength);
+
+        bool? isFeatured = null;
+        string featured = source[AdminProductListQuery.FeaturedKey].ToString().Trim();
+
+        if (featured.Length > 0)
+        {
+            if (!bool.TryParse(featured, out bool parsedFeatured))
+                return DomainErrors.Products.InvalidFeaturedFilter(featured);
+
+            isFeatured = parsedFeatured;
+        }
+
+        return new AdminProductListQuery(
+            search.Length == 0 ? null : search,
+            SplitValues(source[ProductFilter.CategoryKey]),
+            SplitValues(source[ProductFilter.ManufacturerKey]),
+            isFeatured,
+            source["sort"],
+            ReadPage(source),
+            ReadPageSize(
+                source, AdminProductListQuery.DefaultPageSize, AdminProductListQuery.MaxPageSize));
     }
 
     /// <summary>
@@ -104,6 +135,24 @@ internal static class ProductListQueryParser
             out long parsed)
             ? (int)Math.Clamp(parsed, 1, maxLimit)
             : defaultLimit;
+
+    private static string[] SplitValues(StringValues raw)
+        => [.. raw
+            .SelectMany(value => (value ?? string.Empty).Split(
+                ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct(StringComparer.Ordinal)];
+
+    private static int ReadPage(IQueryCollection source)
+        => int.TryParse(source["page"], NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out int parsed) && parsed > 0
+            ? parsed
+            : 1;
+
+    private static int ReadPageSize(IQueryCollection source, int defaultSize, int maxSize)
+        => int.TryParse(source["pageSize"], NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out int parsed)
+            ? Math.Clamp(parsed, 1, maxSize)
+            : defaultSize;
 
     private static (decimal? Value, string? Invalid) ReadPrice(IQueryCollection source, string key)
     {
