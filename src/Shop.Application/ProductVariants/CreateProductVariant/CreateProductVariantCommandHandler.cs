@@ -44,7 +44,7 @@ internal sealed class CreateProductVariantCommandHandler(
 
         string slugSource = slugProvided
             ? command.Slug!
-            : slugGenerator.Generate($"{product.Name} {packaging}");
+            : slugGenerator.Generate($"{product.Name} {packaging.SlugPart}");
 
         Result<Slug, Error> slugResult = Slug.Create(slugSource);
         if (slugResult.IsFailure)
