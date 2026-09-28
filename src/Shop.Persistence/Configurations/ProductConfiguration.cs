@@ -50,7 +50,11 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasIndex(p => new { p.ManufacturerId, p.Name })
             .IsUnique();
-
         builder.HasIndex(p => p.CategoryId);
+
+        builder.HasIndex(p => p.Name, "ix_products_name_trgm")
+            .HasDatabaseName("ix_products_name_trgm")
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
     }
 }

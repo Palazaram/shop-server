@@ -48,6 +48,9 @@ internal sealed class CategoryFilterQueries(AppDbContext context) : ICategoryFil
 
         IQueryable<ProductAttributeValue> assignments = context.Set<ProductAttributeValue>();
 
+        SearchCriteria? searchCriteria = await ProductFilterResolver.ResolveSearchAsync(
+            context, filters.Search, cancellationToken);
+
         IQueryable<ProductVariant> Matching(string? exceptGroupKey)
         {
             bool exceptPrice = exceptGroupKey == ProductFilterSet.PriceGroupKey;
@@ -59,7 +62,8 @@ internal sealed class CategoryFilterQueries(AppDbContext context) : ICategoryFil
                     ? applied
                     : applied.Where(f => f.GroupKey != exceptGroupKey),
                 exceptPrice ? null : filters.PriceMin,
-                exceptPrice ? null : filters.PriceMax);
+                exceptPrice ? null : filters.PriceMax,
+                searchCriteria);
         }
 
         async Task<Dictionary<Guid, int>> CountByValueAsync(IQueryable<ProductVariant> variants)

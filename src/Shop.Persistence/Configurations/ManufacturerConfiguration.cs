@@ -31,5 +31,10 @@ internal sealed class ManufacturerConfiguration : IEntityTypeConfiguration<Manuf
 
         builder.HasIndex(m => m.Name).IsUnique();
         builder.HasIndex(m => m.Slug).IsUnique();
+
+        builder.HasIndex(m => m.Name, "ix_manufacturers_name_trgm")
+            .HasDatabaseName("ix_manufacturers_name_trgm")
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
     }
 }

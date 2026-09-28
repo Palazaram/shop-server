@@ -12,14 +12,25 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
     private const string SortPriceDesc = "price_desc";
     private const string SortNameAsc = "name_asc";
     private const string SortNameDesc = "name_desc";
+    private const string SortRelevance = "relevance";
 
-    public async Task<Result<ProductListResponse, Error>> ListAsync(
-        ProductListQuery query, CancellationToken cancellationToken)
+    public async Task<Result<ProductListResponse, Error>> ListAsync(ProductListQuery query, CancellationToken cancellationToken)
     {
-        string sort = string.IsNullOrWhiteSpace(query.Sort) ? SortNewest : query.Sort.Trim();
+        string? search = query.Filters.Search;
+        bool hasSearch = !string.IsNullOrWhiteSpace(search);
 
-        if (sort is not (SortNewest or SortPriceAsc or SortPriceDesc or SortNameAsc or SortNameDesc))
+        // При поиске порядок по умолчанию — релевантность: «новизна» в выдаче поиска
+        // выглядит случайной.
+        string sort = string.IsNullOrWhiteSpace(query.Sort)
+            ? hasSearch ? SortRelevance : SortNewest
+            : query.Sort.Trim();
+
+        if (sort is not (SortNewest or SortPriceAsc or SortPriceDesc
+                         or SortNameAsc or SortNameDesc or SortRelevance))
             return DomainErrors.Products.UnknownSort(sort);
+
+        if (sort == SortRelevance && !hasSearch)
+            return DomainErrors.Products.RelevanceSortRequiresSearch();
 
         // Поддерево: категория и её прямые дети. Опирается на ограничение глубины двумя уровнями.
         var nodes = await context.Categories.AsNoTracking()
@@ -38,9 +49,12 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
         if (resolvedFilters.IsFailure)
             return resolvedFilters.Error;
 
+        SearchCriteria? criteria = await ProductFilterResolver.ResolveSearchAsync(
+            context, search, cancellationToken);
+
         var rows = from variant in ProductFilterResolver.MatchingVariants(
                        context, subtreeIds, resolvedFilters.Value,
-                       query.Filters.PriceMin, query.Filters.PriceMax)
+                       query.Filters.PriceMin, query.Filters.PriceMax, criteria)
                    join product in context.Products on variant.ProductId equals product.Id
                    join manufacturer in context.Manufacturers
                        on product.ManufacturerId equals manufacturer.Id
@@ -50,6 +64,9 @@ internal sealed class ProductListQueries(AppDbContext context) : IProductListQue
 
         var ordered = sort switch
         {
+            SortRelevance => rows.OrderByDescending(row =>
+                                    EF.Functions.TrigramsWordSimilarity(search!, row.product.Name))
+                                 .ThenBy(row => row.variant.Id),
             SortNameAsc => rows.OrderBy(row => EF.Functions.Collate(
                                     row.product.Name, TextComparers.UkrainianCollation))
                                .ThenBy(row => row.variant.Id),

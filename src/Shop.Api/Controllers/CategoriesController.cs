@@ -205,7 +205,18 @@ public sealed class CategoriesController(
         if (max.Invalid is not null)
             return DomainErrors.Products.InvalidPrice(ProductFilterSet.PriceMaxKey, max.Invalid);
 
-        return new ProductFilterSet(filters, min.Value, max.Value);
+        string search = source[ProductFilterSet.SearchKey].ToString().Trim();
+
+        if (search.Length == 0)
+            return new ProductFilterSet(filters, min.Value, max.Value);
+
+        if (search.Length < ProductFilterSet.MinSearchLength)
+            return DomainErrors.Products.SearchTooShort(ProductFilterSet.MinSearchLength);
+
+        if (search.Length > ProductFilterSet.MaxSearchLength)
+            return DomainErrors.Products.SearchTooLong(ProductFilterSet.MaxSearchLength);
+
+        return new ProductFilterSet(filters, min.Value, max.Value, search);
     }
 
     private static (decimal? Value, string? Invalid) ReadPrice(IQueryCollection source, string key)

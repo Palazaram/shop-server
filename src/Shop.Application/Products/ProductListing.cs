@@ -14,7 +14,8 @@ public sealed record ProductFilter(string GroupKey, IReadOnlyList<string> ValueK
 public sealed record ProductFilterSet(
     IReadOnlyList<ProductFilter> Filters,
     decimal? PriceMin,
-    decimal? PriceMax)
+    decimal? PriceMax,
+    string? Search = null)
 {
     public const string PriceMinKey = "priceMin";
     public const string PriceMaxKey = "priceMax";
@@ -22,6 +23,10 @@ public sealed record ProductFilterSet(
     /// <summary>Не ключ адреса, а опознание цены как группы — нужно, чтобы границы
     /// диапазона считались без учёта самого фильтра по цене.</summary>
     public const string PriceGroupKey = "price";
+
+    public const string SearchKey = "q";
+    public const int MinSearchLength = 2;
+    public const int MaxSearchLength = 100;
 }
 
 public sealed record ProductListQuery(

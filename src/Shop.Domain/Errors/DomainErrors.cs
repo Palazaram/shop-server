@@ -392,6 +392,18 @@ public static class DomainErrors
         public static Error ImageNotOnProduct(Guid imageId)
             => Error.Validation("product.images.unknown_image",
                 $"Image {imageId} does not belong to this product");
+
+        public static Error SearchTooShort(int minLength)
+            => Error.Validation("product.search.too_short",
+                $"Search query must be at least {minLength} characters long");
+
+        public static Error SearchTooLong(int maxLength)
+            => Error.Validation("product.search.too_long",
+                $"Search query must not exceed {maxLength} characters");
+
+        public static Error RelevanceSortRequiresSearch()
+            => Error.Validation("product.sort.relevance_requires_search",
+                "Sorting by relevance requires a search query");
     }
 
     public static class ProductVariants

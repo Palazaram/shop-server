@@ -14,6 +14,16 @@ internal enum ResolvedFilterKind
     Packagings = 3
 }
 
+/// <summary>
+/// Разрешённый поиск: текст для оператора похожести, готовый шаблон LIKE и заранее найденные
+/// производители. Список id вместо подзапроса — потому что коррелированный EXISTS нельзя
+/// собрать в BitmapOr, и тогда ни одна ветка поиска не идёт через индекс.
+/// </summary>
+internal sealed record SearchCriteria(
+    string Text,
+    string Pattern,
+    IReadOnlyList<Guid> ManufacturerIds);
+
 internal sealed record ResolvedFilter(
     string GroupKey,
     ResolvedFilterKind Kind,
@@ -33,6 +43,12 @@ internal sealed record CountryRef(Guid Id, string Slug, string Name);
 
 internal static class ProductFilterResolver
 {
+    /// <summary>
+    /// Npgsql переводит ILike без третьего аргумента в ESCAPE '' — при таком escape обратная
+    /// черта перестаёт экранировать, и «20%» в названии не найдётся никогда.
+    /// </summary>
+    private const string LikeEscape = "\\";
+
     public static async Task<List<ManufacturerRef>> LoadManufacturersAsync(
         AppDbContext context,
         CancellationToken cancellationToken)
@@ -225,12 +241,13 @@ internal static class ProductFilterResolver
         List<Guid> subtreeIds,
         IEnumerable<ResolvedFilter> filters,
         decimal? priceMin,
-        decimal? priceMax)
+        decimal? priceMax,
+        SearchCriteria? search = null)
     {
         List<ResolvedFilter> all = [.. filters];
 
         IQueryable<Guid> productIds = MatchingProductIds(
-            context, subtreeIds, all.Where(f => f.Kind != ResolvedFilterKind.Packagings));
+            context, subtreeIds, all.Where(f => f.Kind != ResolvedFilterKind.Packagings), search);
 
         IQueryable<ProductVariant> variants = context.ProductVariants
             .AsNoTracking()
@@ -255,7 +272,8 @@ internal static class ProductFilterResolver
     private static IQueryable<Guid> MatchingProductIds(
         AppDbContext context,
         List<Guid> subtreeIds,
-        IEnumerable<ResolvedFilter> filters)
+        IEnumerable<ResolvedFilter> filters,
+        SearchCriteria? search)
     {
         IQueryable<ProductAttributeValue> assignments = context.Set<ProductAttributeValue>();
 
@@ -273,8 +291,47 @@ internal static class ProductFilterResolver
                 : products.Where(p => ids.Contains(p.ManufacturerId));
         }
 
+        if (search is not null)
+        {
+            List<Guid> manufacturerIds = [.. search.ManufacturerIds];
+
+            products = products.Where(p =>
+                EF.Functions.ILike(p.Name, search.Pattern, LikeEscape)
+                || EF.Functions.TrigramsAreWordSimilar(search.Text, p.Name)
+                || manufacturerIds.Contains(p.ManufacturerId));
+        }
+
         return products.Select(p => p.Id);
     }
+
+    public static async Task<SearchCriteria?> ResolveSearchAsync(
+        AppDbContext context,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+            return null;
+
+        string pattern = $"%{EscapeLikePattern(search)}%";
+
+        List<Guid> manufacturerIds = await context.Manufacturers
+            .AsNoTracking()
+            .Where(m => EF.Functions.ILike(m.Name, pattern, LikeEscape))
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+
+        return new SearchCriteria(search, pattern, manufacturerIds);
+    }
+
+    /// <summary>
+    /// Без этого запрос «%» вернул бы весь каталог, а «_» совпадал бы с любым символом:
+    /// спецсимволы LIKE пришли от пользователя и должны искаться буквально.
+    /// </summary>
+    private static string EscapeLikePattern(string value)
+        => value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
 
     private static bool IsAttribute(string groupKey)
         => groupKey.StartsWith(ProductFilter.AttributePrefix, StringComparison.Ordinal)
