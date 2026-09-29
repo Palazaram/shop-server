@@ -24,6 +24,10 @@ public static class DomainErrors
         public static Error PhoneInvalidFormat()
             => Error.Validation("user.phone.invalid_format", "Phone number has invalid format");
 
+        public static Error PhoneUnknownOperatorCode()
+            => Error.Validation("user.phone.unknown_operator_code",
+                "Phone number does not start with a known Ukrainian mobile code");
+
         public static Error PasswordHashIsRequired()
             => Error.Validation("user.password_hash.required", "Password hash is required");
 
